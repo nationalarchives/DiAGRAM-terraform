@@ -150,6 +150,7 @@ resource "aws_cloudfront_distribution" "diagram" {
         forward = "all"
       }
     }
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.diagram.id
   }
 
   restrictions {
