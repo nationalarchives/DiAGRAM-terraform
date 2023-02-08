@@ -31,16 +31,16 @@ variable "service" {
   description = "Properties that vary between workspaces"
   default = {
     live = {
-      suffix  = ""
-      url     = "diagram.nationalarchives.gov.uk"
+      suffix = ""
+      url    = "diagram.nationalarchives.gov.uk"
     }
     stage = {
-      suffix  = "-staging"
-      url     = "staging-diagram.nationalarchives.gov.uk"
+      suffix = "-staging"
+      url    = "staging-diagram.nationalarchives.gov.uk"
     }
     dev = {
-      suffix  = "-dev"
-      url     = "dev-diagram.nationalarchives.gov.uk"
+      suffix = "-dev"
+      url    = "dev-diagram.nationalarchives.gov.uk"
     }
   }
 }
