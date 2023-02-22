@@ -23,6 +23,48 @@ data "aws_acm_certificate" "wildcard" {
   provider = aws.us-east-1
 }
 
+# HTTP security headers
+resource "aws_cloudfront_response_headers_policy" "diagram" {
+  name = "security-headers"
+
+  custom_headers_config {
+    items {
+      header   = "X-Permitted-Cross-Domain-Policies"
+      override = true
+      value    = "none"
+    }
+
+    items {
+      header   = "Cache-Control"
+      override = true
+      value    = "no-cache"
+    }
+  }
+
+  security_headers_config {
+    content_type_options {
+      override = true
+    }
+
+    frame_options {
+      override     = true
+      frame_option = "SAMEORIGIN"
+    }
+
+    strict_transport_security {
+      override                   = true
+      access_control_max_age_sec = 31536000
+    }
+
+    content_security_policy {
+      content_security_policy = "default-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; style-src 'self' https://fonts.googleapis.com 'unsafe-hashes' 'sha256-kFAIUwypIt04FgLyVU63Lcmp2AQimPh/TdYjy04Flxs=' 'sha256-2AMfKUIQeL5s2LTyEqbLB08wir4HW4qmUF8KGwRrHpU=' 'sha256-D/q/6FIu6/KApfXCg8WR5j4bB61MmNj2trZtp744lJs='; img-src 'self' blob:;"
+      override                = true
+    }
+  }
+
+}
+
+
 # Create CloudFront distribution
 resource "aws_cloudfront_distribution" "diagram" {
   aliases = ["${var.service[local.workspace].url}"]
@@ -34,9 +76,9 @@ resource "aws_cloudfront_distribution" "diagram" {
     origin_id   = "${local.project_ns}-site"
 
     custom_origin_config {
-      http_port                = 80
-      https_port               = 443
-      origin_protocol_policy   = "http-only"
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "http-only"
       origin_ssl_protocols = [
         "TLSv1.2",
       ]
@@ -83,12 +125,13 @@ resource "aws_cloudfront_distribution" "diagram" {
         forward = "all"
       }
     }
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.diagram.id
   }
 
   # Forward requsts of /api/ to API Gateway
   ordered_cache_behavior {
     path_pattern           = "/api/*"
-    target_origin_id   = "${local.project_ns}-api_gw"
+    target_origin_id       = "${local.project_ns}-api_gw"
     viewer_protocol_policy = "allow-all"
     # Allow all standard verbs
     allowed_methods = [
@@ -112,6 +155,7 @@ resource "aws_cloudfront_distribution" "diagram" {
         forward = "all"
       }
     }
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.diagram.id
   }
 
   restrictions {
