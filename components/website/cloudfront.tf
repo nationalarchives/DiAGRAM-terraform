@@ -190,9 +190,29 @@ resource "aws_wafv2_web_acl" "cloudfront" {
   name  = "cloudfront_acl"
   scope = "CLOUDFRONT"
 
+  custom_response_body {
+    key = "access-denied"
+    content = <<-EOT
+    <html>
+    <p>Sorry, you can&#39;t access this page!</p>
+
+    <p>Did you mean to visit our production site, <a href='https://diagram.nationalarchives.gov.uk'>https://diagram.nationalarchives.gov.uk</a> ?</p>
+
+    <p>If you&#39;re a DiAGRAM developer, you&#39;ll need to be connected to TNA&#39;s VPN to access the development and staging sites.</p>
+
+    </html>
+    EOT
+    content_type = "TEXT_HTML"
+  }
+
   # Block access by default
   default_action {
-    block {}
+    block {
+      custom_response {
+        custom_response_body_key = "access-denied"
+        response_code = "403"
+      }
+    }
   }
 
   # Allow IPs access in IP whitelist
