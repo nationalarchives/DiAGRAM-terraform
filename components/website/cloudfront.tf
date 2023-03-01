@@ -179,7 +179,7 @@ resource "aws_wafv2_ip_set" "allowed_ips" {
   description        = "IPs that can access the DiAGRAM frontend"
   scope              = "CLOUDFRONT"
   ip_address_version = "IPV4"
-  addresses = []
+  addresses = var.secrets.allowed_ips
   # WAF must use us-east-1 region when scope is CLOUDFRONT
   provider = aws.us-east-1
 }

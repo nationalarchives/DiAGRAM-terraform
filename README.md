@@ -79,6 +79,8 @@ secrets = {
       account = "<DEV-ENV-ACCOUNT-ID>"
     }
   }
+  # Allowed IPs only required for website component
+  allowed_ips = []
 }
 ```
 
@@ -146,7 +148,9 @@ the application, from scratch, the following steps must be followed:
    container image pushed in the previous step, and API Gateway integration.
 
 6. Run `terraform apply -target module.tna_zones` and then `terraform apply`,
-   for each workspace in the [`website/`](/components/website/) module.
+   for each workspace in the [`website/`](/components/website/) module. Add any
+   IPs that need access to the dev and stage sites to the `secrets.auto.tfvars`
+   `allowed_ips` list.
 
 7. Trigger the CI job [`update-frontend`](https://github.com/nationalarchives/DiAGRAM/blob/live/.github/workflows/update-backend.yml)
    from each GitHub environment. This will build the static site frontend, and
