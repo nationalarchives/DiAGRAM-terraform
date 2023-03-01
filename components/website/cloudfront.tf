@@ -173,7 +173,7 @@ resource "aws_cloudfront_distribution" "diagram" {
 }
 
 resource "aws_wafv2_ip_set" "allowed_ips" {
-  # Only create for dev and staging (now WAF on live)
+  # Only create for dev and staging (no WAF on live)
   count              = local.has_waf ? 1 : 0
   name               = "allowed_ips"
   description        = "IPs that can access the DiAGRAM frontend"
@@ -185,7 +185,7 @@ resource "aws_wafv2_ip_set" "allowed_ips" {
 }
 
 resource "aws_wafv2_web_acl" "cloudfront" {
-  # Only create for dev and staging (now WAF on live)
+  # Only create for dev and staging (no WAF on live)
   count = local.has_waf ? 1 : 0
   name  = "cloudfront_acl"
   scope = "CLOUDFRONT"
