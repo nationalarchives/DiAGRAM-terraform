@@ -193,13 +193,13 @@ resource "aws_wafv2_web_acl" "cloudfront" {
   custom_response_body {
     key = "access-denied"
     content = <<-EOT
-    <html>
-    <title>404 Not Found</title>
-    <h1>404 Not Found</h1>
-
-    <p>The requested resource was not found.</p>
-
-    </html>
+      <html><head>
+      <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+      <title>404 Not Found</title>
+      </head><body>
+      <h1>Not Found</h1>
+      <p>The requested URL was not found on this server.</p>
+      </body></html>
     EOT
     content_type = "TEXT_HTML"
   }
