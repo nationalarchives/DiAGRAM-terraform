@@ -194,11 +194,10 @@ resource "aws_wafv2_web_acl" "cloudfront" {
     key = "access-denied"
     content = <<-EOT
     <html>
-    <p>Sorry, you can&#39;t access this page!</p>
+    <title>404 Not Found</title>
+    <h1>404 Not Found</h1>
 
-    <p>Did you mean to visit our production site, <a href='https://diagram.nationalarchives.gov.uk'>https://diagram.nationalarchives.gov.uk</a> ?</p>
-
-    <p>If you&#39;re a DiAGRAM developer, you&#39;ll need to be connected to TNA&#39;s VPN to access the development and staging sites.</p>
+    <p>The requested resource was not found.</p>
 
     </html>
     EOT
@@ -210,7 +209,7 @@ resource "aws_wafv2_web_acl" "cloudfront" {
     block {
       custom_response {
         custom_response_body_key = "access-denied"
-        response_code = "403"
+        response_code = "404"
       }
     }
   }
