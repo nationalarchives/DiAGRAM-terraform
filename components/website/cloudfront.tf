@@ -64,12 +64,12 @@ resource "aws_cloudfront_response_headers_policy" "diagram" {
 
 }
 
-
 # Create CloudFront distribution
 resource "aws_cloudfront_distribution" "diagram" {
   aliases = ["${var.service[local.workspace].url}"]
   enabled = true
-
+  # WAF only added to dev and staging for IP restrictions
+  web_acl_id = local.has_waf ? aws_wafv2_web_acl.cloudfront[0].arn : null
   # Frontend origin (S3 bucket)
   origin {
     domain_name = aws_s3_bucket_website_configuration.website.website_endpoint
@@ -170,4 +170,78 @@ resource "aws_cloudfront_distribution" "diagram" {
     minimum_protocol_version = "TLSv1.2_2021"
     acm_certificate_arn      = data.aws_acm_certificate.wildcard.arn
   }
+}
+
+resource "aws_wafv2_ip_set" "allowed_ips" {
+  # Only create for dev and staging (no WAF on live)
+  count              = local.has_waf ? 1 : 0
+  name               = "allowed_ips"
+  description        = "IPs that can access the DiAGRAM frontend"
+  scope              = "CLOUDFRONT"
+  ip_address_version = "IPV4"
+  addresses = var.secrets.allowed_ips
+  # WAF must use us-east-1 region when scope is CLOUDFRONT
+  provider = aws.us-east-1
+}
+
+resource "aws_wafv2_web_acl" "cloudfront" {
+  # Only create for dev and staging (no WAF on live)
+  count = local.has_waf ? 1 : 0
+  name  = "cloudfront_acl"
+  scope = "CLOUDFRONT"
+
+  custom_response_body {
+    key = "access-denied"
+    content = <<-EOT
+      <html><head>
+      <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+      <title>404 Not Found</title>
+      </head><body>
+      <h1>Not Found</h1>
+      <p>The requested URL was not found on this server.</p>
+      </body></html>
+    EOT
+    content_type = "TEXT_HTML"
+  }
+
+  # Block access by default
+  default_action {
+    block {
+      custom_response {
+        custom_response_body_key = "access-denied"
+        response_code = "404"
+      }
+    }
+  }
+
+  # Allow IPs access in IP whitelist
+  rule {
+    name     = "allow_allowed_ips"
+    priority = 1
+
+    action {
+      allow {}
+    }
+
+    statement {
+      ip_set_reference_statement {
+        arn = aws_wafv2_ip_set.allowed_ips[count.index].arn
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = false
+      metric_name                = "friendly-rule-metric-name"
+      sampled_requests_enabled   = false
+    }
+  }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = false
+    metric_name                = "friendly-rule-metric-name"
+    sampled_requests_enabled   = false
+  }
+
+  # WAF must use us-east-1 region when scope is CLOUDFRONT
+  provider = aws.us-east-1
 }

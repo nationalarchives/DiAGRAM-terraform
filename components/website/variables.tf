@@ -48,5 +48,6 @@ variable "service" {
 locals {
   project_ns = "${var.client_id}-${var.project_id}-${terraform.workspace}"
   workspace  = terraform.workspace
+  has_waf    = contains(["dev", "stage"], terraform.workspace)
 }
 
