@@ -15,6 +15,11 @@ data "terraform_remote_state" "container-registry" {
   }
 }
 
+#AWS Managed Role for AWSLambdaBasicExecutionRole which is required for write permissions for CloudWatchLogs
+data "aws_iam_policy" "AWSLambdaBasicExecution" {
+  arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
 # Create a role for lambda.amazonaws.com to assume when executing our Lambda
 # function.
 resource "aws_iam_role" "lambda" {
@@ -33,6 +38,12 @@ resource "aws_iam_role" "lambda" {
       }
     ]
   })
+}
+
+#Attach the AWSLambdaBasicExecutionRole to the role for Lambda execution
+resource "aws_iam_role_policy_attachment" "iampol-lambdabasicexecution" {
+  role = aws_iam_role.lambda.id
+  policy_arn = data.aws_iam_policy.AWSLambdaBasicExecution.arn
 }
 
 # Create role for API Gateway to assume when accessing CloudWatch.
