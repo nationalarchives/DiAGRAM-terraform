@@ -23,6 +23,14 @@ data "aws_acm_certificate" "wildcard" {
   provider = aws.us-east-1
 }
 
+resource "aws_cloudfront_origin_access_control" "website" {
+  name                              = "website"
+  description                       = "S3 Website"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
 # HTTP security headers
 resource "aws_cloudfront_response_headers_policy" "diagram" {
   name = "security-headers"
@@ -68,6 +76,7 @@ resource "aws_cloudfront_response_headers_policy" "diagram" {
 resource "aws_cloudfront_distribution" "diagram" {
   aliases = ["${var.service[local.workspace].url}"]
   enabled = true
+  default_root_object = "index.html"
   # WAF only added to dev and staging for IP restrictions
   web_acl_id = local.has_waf ? aws_wafv2_web_acl.cloudfront[0].arn : null
   # Frontend origin (S3 bucket)
@@ -101,7 +110,7 @@ resource "aws_cloudfront_distribution" "diagram" {
   }
 
   default_cache_behavior {
-    target_origin_id       = "${local.project_ns}-site"
+    target_origin_id       = aws_s3_bucket.website.bucket_domain_name
     viewer_protocol_policy = "redirect-to-https"
     # Allow all standard verbs
     allowed_methods = [
@@ -162,6 +171,12 @@ resource "aws_cloudfront_distribution" "diagram" {
     geo_restriction {
       restriction_type = "none"
     }
+  }
+
+  origin {
+    domain_name              = aws_s3_bucket.website.bucket_regional_domain_name
+    origin_access_control_id = aws_cloudfront_origin_access_control.website.id
+    origin_id                = aws_s3_bucket.website.id
   }
 
   # Attach SSL cerification

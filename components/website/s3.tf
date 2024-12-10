@@ -27,19 +27,34 @@ resource "aws_s3_bucket_policy" "website" {
           "${aws_s3_bucket.website.arn}/*",
         ]
       },
+      {
+        Sid       = "PublicReadGetObject"
+        Effect    = "Allow"
+        Principal = {
+                "Service": "cloudfront.amazonaws.com"
+            },
+        Action    = "s3:GetObject"
+        Resource = [
+          aws_s3_bucket.website.arn,
+          "${aws_s3_bucket.website.arn}/*",
+        ]
+        Condition = {
+                "StringEquals": {
+                    "AWS:SourceArn": aws_cloudfront_distribution.diagram.arn
+                }
+            }
+      }
     ]
   })
 }
 
-# Configure the S3 bucket to behave as a website.
-resource "aws_s3_bucket_website_configuration" "website" {
+
+//Block public access
+resource "aws_s3_bucket_public_access_block" "website" {
   bucket = aws_s3_bucket.website.id
 
-  index_document {
-    suffix = "index.html"
-  }
-
-  error_document {
-    key = "index.html"
-  }
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
