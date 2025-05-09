@@ -105,7 +105,7 @@
             {
               "Condition": {
                 "StringEquals": {
-                  "token.actions.githubusercontent.com:sub": "repo:nationalarchives/DiAGRAM:environment:live",
+                  "token.actions.githubusercontent.com:sub": "repo:nationalarchives/DiAGRAM-terraform*",
                   "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
                 }
               },
