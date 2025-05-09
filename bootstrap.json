@@ -1,0 +1,59 @@
+{
+  "Parameters": {
+    "DevRole": {
+      "Type": "AWS::SSM::Parameter::Value<String>"
+    },
+    "StagingRole": {
+      "Type": "AWS::SSM::Parameter::Value<String>"
+    },
+    "ProdRole": {
+      "Type": "AWS::SSM::Parameter::Value<String>"
+    }
+  },
+  "Resources": {
+    "ECRRepositoryDiagrambackendlambdaruntimes": {
+      "UpdateReplacePolicy": "Retain",
+      "Type": "AWS::ECR::Repository",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "ImageScanningConfiguration": {
+          "ScanOnPush": false
+        },
+        "RepositoryName": "diagram-backend-lambda-runtimes",
+        "EncryptionConfiguration": {
+          "EncryptionType": "AES256"
+        },
+        "RepositoryPolicyText": {
+          "Version": "2008-10-17",
+          "Statement": [
+            {
+              "Action": [
+                "ecr:GetAuthorizationToken",
+                "ecr:InitiateLayerUpload",
+                "ecr:UploadLayerPart",
+                "ecr:CompleteLayerUpload",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:PutImage",
+                "ecr:BatchGetImage",
+                "ecr:DeleteRepositoryPolicy",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:GetRepositoryPolicy",
+                "ecr:SetRepositoryPolicy"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  { "Ref" : "DevRole" },
+                  { "Ref" : "StagingRole" },
+                  { "Ref" : "ProdRole" }
+                ]
+              },
+              "Sid": "New Policy"
+            }
+          ]
+        },
+        "ImageTagMutability": "MUTABLE"
+      }
+    }
+  }
+}

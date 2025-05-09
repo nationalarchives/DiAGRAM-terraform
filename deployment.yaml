@@ -1,0 +1,6 @@
+template-file-path: bootstrap.json
+parameters:
+  DevRole: /dev/github_role
+  StagingRole: /staging/github_role
+  ProdRole: /prod/github_role
+tags: {}
