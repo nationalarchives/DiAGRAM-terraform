@@ -1,9 +1,4 @@
 {
-  "Metadata": {
-    "AWSToolsMetrics": {
-      "IaC_Generator": "arn:aws:cloudformation:eu-west-2:${AWS::AccountId}:generatedTemplate/e25c30c1-fc8e-48fd-88fb-47b9b6dbd6a3"
-    }
-  },
   "Resources": {
     "ECRRepositoryDiagrambackendlambdaruntimes": {
       "UpdateReplacePolicy": "Retain",
@@ -112,7 +107,9 @@
               "Action": "sts:AssumeRoleWithWebIdentity",
               "Effect": "Allow",
               "Principal": {
-                "Federated": "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+                "Federated": {
+                  "Fn::Sub" : "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+                }
               }
             }
           ]
