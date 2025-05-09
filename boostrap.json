@@ -1,0 +1,123 @@
+{
+  "Metadata": {
+    "AWSToolsMetrics": {
+      "IaC_Generator": "arn:aws:cloudformation:eu-west-2:${AWS::AccountId}:generatedTemplate/e25c30c1-fc8e-48fd-88fb-47b9b6dbd6a3"
+    }
+  },
+  "Resources": {
+    "ECRRepositoryDiagrambackendlambdaruntimes": {
+      "UpdateReplacePolicy": "Retain",
+      "Type": "AWS::ECR::Repository",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "ImageScanningConfiguration": {
+          "ScanOnPush": false
+        },
+        "RepositoryName": "diagram-backend-lambda-runtimes",
+        "EncryptionConfiguration": {
+          "EncryptionType": "AES256"
+        },
+        "RepositoryPolicyText": {
+          "Version": "2008-10-17",
+          "Statement": [
+            {
+              "Action": [
+                "ecr:GetAuthorizationToken",
+                "ecr:InitiateLayerUpload",
+                "ecr:UploadLayerPart",
+                "ecr:CompleteLayerUpload",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:PutImage",
+                "ecr:BatchGetImage",
+                "ecr:DeleteRepositoryPolicy",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:GetRepositoryPolicy",
+                "ecr:SetRepositoryPolicy"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Sid": "New Policy"
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Value": "live",
+            "Key": "Environment"
+          },
+          {
+            "Value": "nata",
+            "Key": "Client"
+          },
+          {
+            "Value": "nata-dia3",
+            "Key": "Project"
+          }
+        ],
+        "ImageTagMutability": "MUTABLE"
+      }
+    },
+    "IAMRoleRoleDiagramGitHubOICD": {
+      "UpdateReplacePolicy": "Retain",
+      "Type": "AWS::IAM::Role",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "Path": "/",
+        "MaxSessionDuration": 3600,
+        "RoleName": "Role_Diagram_GitHub_OICD",
+        "Description": "Used for GitHub OICD auth",
+        "Policies": [
+          {
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Resource": "*",
+                  "Action": [
+                    "ecr:GetAuthorizationToken",
+                    "ecr:InitiateLayerUpload",
+                    "ecr:UploadLayerPart",
+                    "ecr:CompleteLayerUpload",
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:PutImage",
+                    "ecr:BatchGetImage",
+                    "ecr:GetDownloadUrlForLayer",
+                    "lambda:GetFunction",
+                    "lambda:UpdateFunctionCode",
+                    "lambda:GetFunctionConfiguration",
+                    "s3:ListBucket",
+                    "s3:GetObject",
+                    "s3:PutObject",
+                    "s3:DeleteObject"
+                  ],
+                  "Effect": "Allow"
+                }
+              ]
+            },
+            "PolicyName": "Policy_Diagram_GitHub_OICD"
+          }
+        ],
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:sub": "repo:nationalarchives/DiAGRAM:environment:live",
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+                }
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
