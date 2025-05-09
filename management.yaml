@@ -1,0 +1,5 @@
+template-file-path: management.json
+parameters:
+  DevAccount: /dev/account_number
+  ProdAccount: /prod/account_number
+tags: {}

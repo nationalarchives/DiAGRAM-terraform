@@ -1,0 +1,4 @@
+template-file-path: environments.json
+parameters:
+  Environment: /environment/name
+tags: {}

@@ -1,0 +1,285 @@
+{
+  "Parameters": {
+    "DevAccount": {
+      "Type": "AWS::SSM::Parameter::Value<String>"
+    },
+    "ProdAccount": {
+      "Type": "AWS::SSM::Parameter::Value<String>"
+    }
+  },
+  "Resources": {
+    "ECRRepositoryDiagrambackendlambdaruntimes": {
+      "UpdateReplacePolicy": "Retain",
+      "Type": "AWS::ECR::Repository",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "ImageScanningConfiguration": {
+          "ScanOnPush": false
+        },
+        "RepositoryName": "diagram-backend-lambda-runtimes",
+        "EncryptionConfiguration": {
+          "EncryptionType": "AES256"
+        },
+        "RepositoryPolicyText": {
+          "Version": "2008-10-17",
+          "Statement": [
+            {
+              "Action": [
+                "ecr:GetAuthorizationToken",
+                "ecr:InitiateLayerUpload",
+                "ecr:UploadLayerPart",
+                "ecr:CompleteLayerUpload",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:PutImage",
+                "ecr:BatchGetImage",
+                "ecr:DeleteRepositoryPolicy",
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:GetRepositoryPolicy",
+                "ecr:SetRepositoryPolicy"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  {"Fn::Sub":  "arn:aws:iam::${DevAccount}:role/Role_Diagram_GitHub_OICD"},
+                  {"Fn::Sub":  "arn:aws:iam::${ProdAccount}:role/Role_Diagram_GitHub_OICD"}
+                ]
+              },
+              "Sid": "New Policy"
+            }
+          ]
+        },
+        "ImageTagMutability": "IMMUTABLE"
+      }
+    },
+    "S3BucketMgmtDiagramTerraformState": {
+      "UpdateReplacePolicy": "Retain",
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "PublicAccessBlockConfiguration": {
+          "RestrictPublicBuckets": true,
+          "IgnorePublicAcls": true,
+          "BlockPublicPolicy": true,
+          "BlockPublicAcls": true
+        },
+        "BucketName": "mgmt-diagram-terraform-state",
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerEnforced"
+            }
+          ]
+        },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "BucketKeyEnabled": true,
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "LoggingConfiguration": {
+          "DestinationBucketName": {
+            "Ref": "S3BucketDiagramMgmtLogs"
+          },
+          "LogFilePrefix": {
+            "Fn::Sub" : "mgmt-diagram-terraform-state/${AWS::AccountId}/"
+          }
+        },
+        "LifecycleConfiguration": {
+          "TransitionDefaultMinimumObjectSize": "varies_by_storage_class",
+          "Rules": [
+            {
+              "Status": "Enabled",
+              "Id": "delete-incomplete-multipart-uploads",
+              "Prefix": "",
+              "AbortIncompleteMultipartUpload": {
+                "DaysAfterInitiation": 7
+              }
+            }
+          ]
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "Tags": [
+          {
+            "Value": "mgmt-diagram-terraform-state",
+            "Key": "Name"
+          }
+        ]
+      }
+    },
+    "S3BucketDiagramMgmtLogs": {
+      "UpdateReplacePolicy": "Retain",
+      "Type": "AWS::S3::Bucket",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "PublicAccessBlockConfiguration": {
+          "RestrictPublicBuckets": true,
+          "IgnorePublicAcls": true,
+          "BlockPublicPolicy": true,
+          "BlockPublicAcls": true
+        },
+        "BucketName": "mgmt-diagram-s3-logs",
+        "OwnershipControls": {
+          "Rules": [
+            {
+              "ObjectOwnership": "BucketOwnerEnforced"
+            }
+          ]
+        },
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "BucketKeyEnabled": true,
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        },
+        "LifecycleConfiguration": {
+          "TransitionDefaultMinimumObjectSize": "all_storage_classes_128K",
+          "Rules": [
+            {
+              "Status": "Enabled",
+              "Id": "delete-incomplete-multipart-uploads",
+              "Prefix": "",
+              "AbortIncompleteMultipartUpload": {
+                "DaysAfterInitiation": 7
+              }
+            }
+          ]
+        },
+        "VersioningConfiguration": {
+          "Status": "Enabled"
+        },
+        "Tags": [
+          {
+            "Value": "mgmt-diagram-s3-logs",
+            "Key": "Name"
+          }
+        ]
+      }
+    },
+    "S3BucketPolicyMgmtDiagramTerraformState": {
+      "UpdateReplacePolicy": "Retain",
+      "Type": "AWS::S3::BucketPolicy",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "Bucket": {
+          "Ref": "S3BucketMgmtDiagramTerraformState"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Resource": [
+                "arn:aws:s3:::mgmt-diagram-terraform-state",
+                "arn:aws:s3:::mgmt-diagram-terraform-state/*"
+              ],
+              "Action": [
+                "s3:GetObject",
+                "s3:ListBucket",
+                "s3:PutObject"
+              ],
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": [
+                  {"Fn::Sub":  "arn:aws:iam::${DevAccount}:role/DiagramTerraformRole"},
+                  {"Fn::Sub":  "arn:aws:iam::${ProdAccount}:role/DiagramTerraformRole"}
+                ]
+              },
+              "Sid": "Allow account roles access"
+            },
+            {
+              "Resource": "arn:aws:s3:::mgmt-diagram-terraform-state/env:/dev/terraform.state.tflock",
+              "Action": "s3:DeleteObject",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {"Fn::Sub":  "arn:aws:iam::${DevAccount}:role/DiagramTerraformRole"}
+              },
+              "Sid": "Allow deleting lock file object dev"
+            },
+            {
+              "Resource": "arn:aws:s3:::mgmt-diagram-terraform-state/env:/prod/terraform.state.tflock",
+              "Action": "s3:DeleteObject",
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {"Fn::Sub":  "arn:aws:iam::${ProdAccount}:role/DiagramTerraformRole"}
+              },
+              "Sid": "Allow deleting lock file object prod"
+            },
+            {
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              },
+              "Resource": [
+                "arn:aws:s3:::mgmt-diagram-terraform-state",
+                "arn:aws:s3:::mgmt-diagram-terraform-state/*"
+              ],
+              "Action": "s3:*",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Sid": "AllowSSLRequestsOnly"
+            }
+          ]
+        }
+      }
+    },
+    "S3BucketPolicyDiagramMgmtLogs": {
+      "UpdateReplacePolicy": "Retain",
+      "Type": "AWS::S3::BucketPolicy",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "Bucket": {
+          "Ref": "S3BucketDiagramMgmtLogs"
+        },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Condition": {
+                "StringEquals": {
+                  "aws:SourceAccount": {
+                    "Ref" : "AWS::AccountId"
+                  }
+                },
+                "ArnLike": {
+                  "aws:SourceArn": "arn:aws:s3:::mgmt-diagram-terraform-state"
+                }
+              },
+              "Resource": "arn:aws:s3:::mgmt-diagram-s3-logs/*",
+              "Action": "s3:PutObject",
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "logging.s3.amazonaws.com"
+              },
+              "Sid": "S3ServerAccessLogsPolicy"
+            },
+            {
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": "false"
+                }
+              },
+              "Resource": [
+                "arn:aws:s3:::mgmt-diagram-s3-logs",
+                "arn:aws:s3:::mgmt-diagram-s3-logs/*"
+              ],
+              "Action": "s3:*",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Sid": "AllowSSLRequestsOnly"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
