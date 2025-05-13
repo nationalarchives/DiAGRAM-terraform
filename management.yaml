@@ -1,0 +1,9 @@
+template-file-path: management.json
+parameters:
+  DevRole: /dev/github_role
+  StagingRole: /staging/github_role
+  ProdRole: /prod/github_role
+  DevTerraformRole: /dev/terraform_role
+  StagingTerraformRole: /staging/terraform_role
+  ProdTerraformRole: /prod/terraform_role
+tags: {}

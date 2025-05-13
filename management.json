@@ -8,6 +8,15 @@
     },
     "ProdRole": {
       "Type": "AWS::SSM::Parameter::Value<String>"
+    },
+    "DevTerraformRole": {
+      "Type": "AWS::SSM::Parameter::Value<String>"
+    },
+    "StagingTerraformRole": {
+      "Type": "AWS::SSM::Parameter::Value<String>"
+    },
+    "ProdTerraformRole": {
+      "Type": "AWS::SSM::Parameter::Value<String>"
     }
   },
   "Resources": {
@@ -193,9 +202,9 @@
               "Effect": "Allow",
               "Principal": {
                 "AWS": [
-                  { "Ref" : "DevRole" },
-                  { "Ref" : "StagingRole" },
-                  { "Ref" : "ProdRole" }
+                  { "Ref" : "DevTerraformRole" },
+                  { "Ref" : "StagingTerraformRole" },
+                  { "Ref" : "ProdTerraformRole" }
                 ]
               },
               "Sid": "Allow account roles access"
