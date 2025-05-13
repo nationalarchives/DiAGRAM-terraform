@@ -1,4 +1,2 @@
 template-file-path: environments.json
-parameters:
-  Environment: /environment
 tags: {}
