@@ -205,7 +205,7 @@
               "Sid": "Allow deleting lock file object dev"
             },
             {
-              "Resource": "arn:aws:s3:::mgmt-diagram-terraform-state/env:/prod/terraform.state.tflock",
+              "Resource": "arn:aws:s3:::mgmt-diagram-terraform-state/env:/live/terraform.state.tflock",
               "Action": "s3:DeleteObject",
               "Effect": "Allow",
               "Principal": {
