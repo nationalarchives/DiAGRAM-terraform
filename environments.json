@@ -85,7 +85,8 @@
                     "iam:ListAttachedRolePolicies",
                     "iam:TagRole",
                     "iam:UntagRole",
-                    "iam:UpdateRoleDescription"
+                    "iam:UpdateRoleDescription",
+                    "iam:UpdateAssumeRolePolicy"
                   ],
                   "Resource": [
                     "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
