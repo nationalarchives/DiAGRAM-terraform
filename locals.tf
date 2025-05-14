@@ -1,6 +1,6 @@
 locals {
   service = {
-    prod = {
+    live = {
       suffix = ""
       url    = "diagram.nationalarchives.gov.uk"
     }

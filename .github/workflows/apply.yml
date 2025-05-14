@@ -8,7 +8,7 @@ on:
         required: true
         options:
           - dev
-          - prod
+          - live
         default: 'dev'
 permissions:
   id-token: write
