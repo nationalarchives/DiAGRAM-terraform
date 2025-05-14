@@ -52,7 +52,7 @@ resource "aws_iam_role" "gha_role" {
         "Action" = "sts:AssumeRoleWithWebIdentity",
         "Condition" = {
           "StringEquals" = {
-            "token.actions.githubusercontent.com:sub" = "repo:nationalarchives/DiAGRAM:environment:dev",
+            "token.actions.githubusercontent.com:sub" = "repo:nationalarchives/DiAGRAM:environment:${terraform.workspace}",
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
         }
