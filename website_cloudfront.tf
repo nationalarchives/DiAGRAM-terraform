@@ -1,25 +1,11 @@
-data "terraform_remote_state" "lambda-api" {
-  backend   = "s3"
-  workspace = local.workspace
-
-  config = {
-    endpoint             = "s3.amazonaws.com"
-    key                  = "lambda-api.tfstate"
-    workspace_key_prefix = "nata/dia3"
-    bucket               = "jr-terraform-states"
-    region               = "us-east-1"
-    encrypt              = true
-  }
-}
-
 # TNA provided this certificate upon our request, importing it into the three
 # development environments on our behalf.
 # Note that SSL certificates for use with CloudFront _must_ be imported into
 # the US East (N. Virginia) Region (us-east-1).
 data "aws_acm_certificate" "wildcard" {
-  domain   = "*.nationalarchives.gov.uk"
+  domain   = local.service[terraform.workspace].url
   statuses = ["ISSUED"]
-  types    = ["IMPORTED"]
+  types    = ["AMAZON_ISSUED"]
   provider = aws.us-east-1
 }
 
@@ -74,29 +60,13 @@ resource "aws_cloudfront_response_headers_policy" "diagram" {
 
 # Create CloudFront distribution
 resource "aws_cloudfront_distribution" "diagram" {
-  aliases = ["${var.service[local.workspace].url}"]
-  enabled = true
+  aliases             = ["${local.service[terraform.workspace].url}"]
+  enabled             = true
   default_root_object = "index.html"
-  # WAF only added to dev and staging for IP restrictions
-  web_acl_id = local.has_waf ? aws_wafv2_web_acl.cloudfront[0].arn : null
-  # Frontend origin (S3 bucket)
-  origin {
-    domain_name = aws_s3_bucket_website_configuration.website.website_endpoint
-    origin_id   = "${local.project_ns}-site"
-
-    custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      origin_protocol_policy = "http-only"
-      origin_ssl_protocols = [
-        "TLSv1.2",
-      ]
-    }
-  }
 
   # Backend origin (API Gateway)
   origin {
-    domain_name = data.terraform_remote_state.lambda-api.outputs.api_gateway_invoke_url
+    domain_name = trimsuffix(trimprefix(aws_apigatewayv2_stage.lambda.invoke_url, "https://"), "/")
     origin_id   = "${local.project_ns}-api_gw"
 
     custom_origin_config {
@@ -110,7 +80,7 @@ resource "aws_cloudfront_distribution" "diagram" {
   }
 
   default_cache_behavior {
-    target_origin_id       = aws_s3_bucket.website.bucket_domain_name
+    target_origin_id       = aws_s3_bucket.website.id
     viewer_protocol_policy = "redirect-to-https"
     # Allow all standard verbs
     allowed_methods = [
@@ -187,76 +157,23 @@ resource "aws_cloudfront_distribution" "diagram" {
   }
 }
 
-resource "aws_wafv2_ip_set" "allowed_ips" {
-  # Only create for dev and staging (no WAF on live)
-  count              = local.has_waf ? 1 : 0
-  name               = "allowed_ips"
-  description        = "IPs that can access the DiAGRAM frontend"
-  scope              = "CLOUDFRONT"
-  ip_address_version = "IPV4"
-  addresses = var.secrets.allowed_ips
-  # WAF must use us-east-1 region when scope is CLOUDFRONT
-  provider = aws.us-east-1
+locals {
+  zone_name = "${terraform.workspace == "prod" ? "" : "${terraform.workspace}-"}diagram.nationalarchives.gov.uk"
 }
 
-resource "aws_wafv2_web_acl" "cloudfront" {
-  # Only create for dev and staging (no WAF on live)
-  count = local.has_waf ? 1 : 0
-  name  = "cloudfront_acl"
-  scope = "CLOUDFRONT"
+data "aws_route53_zone" "hosted_zone" {
+  name = local.zone_name
+}
 
-  custom_response_body {
-    key = "access-denied"
-    content = <<-EOT
-      <html><head>
-      <meta http-equiv="content-type" content="text/html; charset=windows-1252">
-      <title>404 Not Found</title>
-      </head><body>
-      <h1>Not Found</h1>
-      <p>The requested URL was not found on this server.</p>
-      </body></html>
-    EOT
-    content_type = "TEXT_HTML"
+# Create a record in route 53 for each tna zone
+resource "aws_route53_record" "tna_records" {
+  zone_id = data.aws_route53_zone.hosted_zone.id
+  name    = local.zone_name
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.diagram.domain_name
+    zone_id                = aws_cloudfront_distribution.diagram.hosted_zone_id
+    evaluate_target_health = false
   }
-
-  # Block access by default
-  default_action {
-    block {
-      custom_response {
-        custom_response_body_key = "access-denied"
-        response_code = "404"
-      }
-    }
-  }
-
-  # Allow IPs access in IP whitelist
-  rule {
-    name     = "allow_allowed_ips"
-    priority = 1
-
-    action {
-      allow {}
-    }
-
-    statement {
-      ip_set_reference_statement {
-        arn = aws_wafv2_ip_set.allowed_ips[count.index].arn
-      }
-    }
-
-    visibility_config {
-      cloudwatch_metrics_enabled = false
-      metric_name                = "friendly-rule-metric-name"
-      sampled_requests_enabled   = false
-    }
-  }
-
-  visibility_config {
-    cloudwatch_metrics_enabled = false
-    metric_name                = "friendly-rule-metric-name"
-    sampled_requests_enabled   = false
-  }
-
-  # WAF must use us-east-1 region when scope is CLOUDFRONT
-  provider = aws.us-east-1
 }
