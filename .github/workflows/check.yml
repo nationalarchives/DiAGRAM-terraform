@@ -1,0 +1,32 @@
+name: 'Terraform check'
+on:
+  push:
+permissions:
+  id-token: write
+  contents: write
+jobs:
+  terraform-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure AWS credentials for Lambda
+        uses: aws-actions/configure-aws-credentials@v4.1.0
+        with:
+          role-to-assume: ${{ secrets.DEV_TERRAFORM_ROLE }}
+          aws-region: eu-west-2
+          role-session-name: TerraformRole
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.11.3
+      - name: Terraform Format
+        id: fmt
+        run: terraform fmt -check --recursive
+      - name: Terraform Init
+        id: init
+        run: terraform init
+      - name: Select dev workspace
+        run: terraform workspace select dev
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
