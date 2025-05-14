@@ -20,6 +20,9 @@
         "EncryptionConfiguration": {
           "EncryptionType": "AES256"
         },
+        "LifeCyclePolicy": {
+          "LifecyclePolicyText": "{\"rules\":[{\"rulePriority\":1,\"selection\":{\"tagStatus\":\"untagged\",\"countType\":\"sinceImagePushed\",\"countUnit\":\"days\",\"countNumber\":7},\"action\":{\"type\":\"expire\"}}]}"
+        },
         "RepositoryPolicyText": {
           "Version": "2008-10-17",
           "Statement": [
