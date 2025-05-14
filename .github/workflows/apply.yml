@@ -3,26 +3,23 @@ on:
   workflow_dispatch:
     inputs:
       environment:
+        type: choice
+        description: 'Environment'
         required: true
-        description: The environment to deploy against.
-        type: string
-        default: intg
+        options:
+          - dev
+          - prod
+        default: 'dev'
 permissions:
   id-token: write
   contents: write
 jobs:
-  setup:
-    uses: nationalarchives/dr2-github-actions/.github/workflows/set_terraform_var_names.yml@main
-    with:
-      project: dr2
-      environment: ${{ github.event.inputs.environment }}
   apply:
     uses: nationalarchives/dr2-github-actions/.github/workflows/terraform_apply.yml@main
-    needs: setup
     with:
       repo-name: dr2-terraform-environments
       environment: ${{ github.event.inputs.environment }}
-      project: dr2
+      project: diagram
     secrets:
       WORKFLOW_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
       ACCOUNT_NUMBER: ${{ secrets.ACCOUNT_NUMBER }}
