@@ -16,13 +16,14 @@ permissions:
 jobs:
   plan:
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Configure AWS credentials for Lambda
         uses: aws-actions/configure-aws-credentials@v4.1.0
         with:
-          role-to-assume: ${{ secrets.DEV_TERRAFORM_ROLE }}
+          role-to-assume: ${{ secrets.TERRAFORM_ROLE }}
           aws-region: eu-west-2
           role-session-name: TerraformRole
       - uses: hashicorp/setup-terraform@v3
