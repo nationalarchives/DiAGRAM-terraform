@@ -67,8 +67,8 @@
                     "s3:*"
                   ],
                   "Resource": [
-                    "arn:aws:s3:::nata-dia3-dev-site",
-                    "arn:aws:s3:::nata-dia3-dev-site/*",
+                    {"Fn::Sub": "arn:aws:s3:::nata-dia3-${Environment}-site"},
+                    {"Fn::Sub": "arn:aws:s3:::nata-dia3-${Environment}-site/*"},
                     "arn:aws:s3:::mgmt-diagram-terraform-state",
                     "arn:aws:s3:::mgmt-diagram-terraform-state/*"
                   ]
