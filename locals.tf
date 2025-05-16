@@ -4,10 +4,6 @@ locals {
       suffix = ""
       url    = "diagram.nationalarchives.gov.uk"
     }
-    stage = {
-      suffix = "-staging"
-      url    = "staging-diagram.nationalarchives.gov.uk"
-    }
     dev = {
       suffix = "-dev"
       url    = "dev-diagram.nationalarchives.gov.uk"

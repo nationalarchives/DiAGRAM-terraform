@@ -47,7 +47,7 @@ resource "aws_iam_role" "gha_role" {
       {
         "Effect" = "Allow",
         "Principal" = {
-          "Federated" = "arn:aws:iam::329739027390:oidc-provider/token.actions.githubusercontent.com"
+          "Federated" = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"
         },
         "Action" = "sts:AssumeRoleWithWebIdentity",
         "Condition" = {

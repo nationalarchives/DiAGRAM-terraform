@@ -158,7 +158,8 @@ resource "aws_cloudfront_distribution" "diagram" {
 }
 
 locals {
-  zone_name = "${terraform.workspace == "live" ? "" : "${terraform.workspace}-"}diagram.nationalarchives.gov.uk"
+  zone_prefix = terraform.workspace == "live" ? "" : "${terraform.workspace}-"
+  zone_name   = "${local.zone_prefix}diagram.nationalarchives.gov.uk"
 }
 
 data "aws_route53_zone" "hosted_zone" {
