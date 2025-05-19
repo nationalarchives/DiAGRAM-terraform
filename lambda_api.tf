@@ -1,29 +1,11 @@
-# The Lambda function needs to know the repository name in which the custom
-# Lambda container image is stored. This value was defined in the
-# container-registry module.
-data "terraform_remote_state" "container-registry" {
-  backend   = "s3"
-  workspace = local.workspace
-
-  config = {
-    endpoint             = "s3.amazonaws.com"
-    key                  = "container-registry.tfstate"
-    workspace_key_prefix = "nata/dia3"
-    bucket               = "jr-terraform-states"
-    region               = "us-east-1"
-    encrypt              = true
-  }
-}
-
-#AWS Managed Role for AWSLambdaBasicExecutionRole which is required for write permissions for CloudWatchLogs
-data "aws_iam_policy" "AWSLambdaBasicExecution" {
-  arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+data "aws_ssm_parameter" "management_account" {
+  name = "/mgmt/account_id"
 }
 
 # Create a role for lambda.amazonaws.com to assume when executing our Lambda
 # function.
 resource "aws_iam_role" "lambda" {
-  name = var.lambda_iam_name
+  name = local.lambda_iam_name
 
   assume_role_policy = jsonencode({
     Version : "2012-10-17",
@@ -42,8 +24,8 @@ resource "aws_iam_role" "lambda" {
 
 #Attach the AWSLambdaBasicExecutionRole to the role for Lambda execution
 resource "aws_iam_role_policy_attachment" "iampol-lambdabasicexecution" {
-  role = aws_iam_role.lambda.id
-  policy_arn = data.aws_iam_policy.AWSLambdaBasicExecution.arn
+  role       = aws_iam_role.lambda.id
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 # Create role for API Gateway to assume when accessing CloudWatch.
@@ -93,12 +75,12 @@ resource "aws_iam_role_policy" "cloudwatch" {
 
 # Create Lambda function from custom Lambda container image
 resource "aws_lambda_function" "this" {
-  function_name = var.lambda_function_name
-  image_uri     = "${data.terraform_remote_state.container-registry.outputs.ecr_repo_url}:latest"
-  memory_size   = var.lambda_memsize
-  package_type  = var.lambda_package_type
+  function_name = local.lambda_function_name
+  image_uri     = "${data.aws_ssm_parameter.management_account.value}.dkr.ecr.eu-west-2.amazonaws.com/diagram-backend-lambda-runtimes:latest"
+  memory_size   = local.lambda_memsize
+  package_type  = local.lambda_package_type
   role          = aws_iam_role.lambda.arn
-  timeout       = var.lambda_timeout
+  timeout       = local.lambda_timeout
   # Ignore changes to the image URI; updating the container image used by this
   # function is performed by the application code's GitHub Actions
   # "update-backend" workflow
@@ -111,8 +93,8 @@ resource "aws_lambda_function" "this" {
 
 # Create API Gateway.
 resource "aws_apigatewayv2_api" "lambda" {
-  name          = var.gateway_name
-  protocol_type = var.gateway_protocol
+  name          = local.gateway_name
+  protocol_type = local.gateway_protocol
 }
 
 # Attach CloudWatch role to allow API GateWay to push logs there.
@@ -130,7 +112,7 @@ resource "aws_cloudwatch_log_group" "lambda" {
 resource "aws_apigatewayv2_stage" "lambda" {
   depends_on  = [aws_cloudwatch_log_group.lambda]
   api_id      = aws_apigatewayv2_api.lambda.id
-  name        = var.gateway_stage_name
+  name        = local.gateway_stage_name
   auto_deploy = true
   access_log_settings {
     destination_arn = aws_cloudwatch_log_group.lambda.arn
@@ -147,25 +129,25 @@ resource "aws_apigatewayv2_stage" "lambda" {
     })
   }
   default_route_settings {
-    logging_level            = var.gateway_stage_logging_level
-    detailed_metrics_enabled = var.gateway_stage_detailed_metrics
-    throttling_burst_limit   = var.gateway_stage_burst_limit
-    throttling_rate_limit    = var.gateway_stage_rate_limit
+    logging_level            = local.gateway_stage_logging_level
+    detailed_metrics_enabled = local.gateway_stage_detailed_metrics
+    throttling_burst_limit   = local.gateway_stage_burst_limit
+    throttling_rate_limit    = local.gateway_stage_rate_limit
   }
 }
 
 # Add a Lambda integration to API Gateway.
 resource "aws_apigatewayv2_integration" "lambda" {
   api_id             = aws_apigatewayv2_api.lambda.id
-  integration_type   = var.gateway_integration_type
-  integration_method = var.gateway_integration_method
+  integration_type   = local.gateway_integration_type
+  integration_method = local.gateway_integration_method
   integration_uri    = aws_lambda_function.this.invoke_arn
 }
 
 # Route requests from API Gateway through to the Lambda Function.
 resource "aws_apigatewayv2_route" "lambda-backend" {
   api_id    = aws_apigatewayv2_api.lambda.id
-  route_key = var.gateway_route_key
+  route_key = local.gateway_route_key
   target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
 
@@ -177,10 +159,4 @@ resource "aws_lambda_permission" "api_gw" {
   principal     = "apigateway.amazonaws.com"
 
   source_arn = "${aws_apigatewayv2_api.lambda.execution_arn}/*/*"
-}
-
-# This value is used in website/cloudfront.tf later
-output "api_gateway_invoke_url" {
-  sensitive = true
-  value     = trimsuffix(trimprefix(aws_apigatewayv2_stage.lambda.invoke_url, "https://"), "/")
 }

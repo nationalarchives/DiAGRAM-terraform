@@ -1,0 +1,77 @@
+name: 'Terraform apply'
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        description: 'Environment'
+        required: true
+        options:
+          - dev
+          - live
+        default: 'dev'
+permissions:
+  id-token: write
+  contents: write
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure AWS credentials for Lambda
+        uses: aws-actions/configure-aws-credentials@v4.1.0
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_NUMBER }}:role/DiagramTerraformRole
+          aws-region: eu-west-2
+          role-session-name: TerraformRole
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform init 
+          terraform workspace select ${{ github.event.inputs.environment }}
+          terraform plan
+  apply:
+    runs-on: ubuntu-latest
+    needs:
+      - plan
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: nationalarchives/DiAGRAM-terraform
+      - name: Configure AWS credentials for Lambda
+        uses: aws-actions/configure-aws-credentials@v4.1.0
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.ACCOUNT_NUMBER }}:role/DiagramTerraformRole
+          aws-region: eu-west-2
+          role-session-name: TerraformRole
+      - uses: hashicorp/setup-terraform@v3
+      - name: Run apply
+        run: |
+          terraform init
+          terraform workspace select ${{ github.event.inputs.environment }}
+          terraform apply --auto-approve
+      - id: next-tag
+        uses: nationalarchives/dr2-github-actions/.github/actions/get-next-version@main
+        with:
+          repo-name: DiAGRAM-terraform
+      - run: |
+          git tag ${{ steps.next-tag.outputs.next-version }}
+          git push origin ${{ steps.next-tag.outputs.next-version }}
+          git branch -f release-${{ github.event.inputs.environment }} HEAD
+          git push -f origin release-${{ github.event.inputs.environment }}
+      - name: Send failure message
+        if: failure()
+        uses: nationalarchives/dr2-github-actions/.github/actions/slack-send@main
+        with:
+          message: ":warning: DiAGRAM-terraform deploy failed for ${{ github.event.inputs.environment }}"
+          slack-url: ${{ secrets.SLACK_WEBHOOK }}
+      - name: Send success message
+        uses: nationalarchives/dr2-github-actions/.github/actions/slack-send@main
+        with:
+          message: ":white_check_mark: DiAGRAM-terraform deploy successful for ${{ github.event.inputs.environment }}"
+          slack-url: ${{ secrets.SLACK_WEBHOOK }}
