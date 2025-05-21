@@ -14,7 +14,7 @@
       "DeletionPolicy": "Retain",
       "Properties": {
         "ImageScanningConfiguration": {
-          "ScanOnPush": false
+          "ScanOnPush": true
         },
         "RepositoryName": "diagram-backend-lambda-runtimes",
         "EncryptionConfiguration": {
