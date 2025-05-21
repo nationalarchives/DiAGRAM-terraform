@@ -48,6 +48,25 @@
                 ]
               },
               "Sid": "New Policy"
+            },
+            {
+              "Sid": "LambdaECRImageCrossAccountRetrievalPolicy",
+              "Effect": "Allow",
+              "Action": [
+                "ecr:BatchGetImage",
+                "ecr:GetDownloadUrlForLayer"
+              ],
+              "Principal": {
+                "Service": "lambda.amazonaws.com"
+              },
+              "Condition": {
+                "StringEquals": {
+                  "aws:sourceARN": [
+                    {"Fn::Sub": "arn:aws:lambda:eu-west-2:${DevAccount}:function:diagram-backend"},
+                    {"Fn::Sub": "arn:aws:lambda:eu-west-2:${ProdAccount}:function:diagram-backend"}
+                  ]
+                }
+              }
             }
           ]
         },
