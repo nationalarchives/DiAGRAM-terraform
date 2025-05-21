@@ -51,7 +51,7 @@
             }
           ]
         },
-        "ImageTagMutability": "IMMUTABLE"
+        "ImageTagMutability": "MUTABLE"
       }
     },
     "S3BucketMgmtDiagramTerraformState": {
