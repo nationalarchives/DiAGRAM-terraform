@@ -3,9 +3,71 @@
   "Parameters": {
     "Environment": {
       "Type": "AWS::SSM::Parameter::Value<String>"
+    },
+    "ManagementAccount": {
+      "Type": "AWS::SSM::Parameter::Value<String>"
     }
   },
   "Resources": {
+    "DiagramPushToECRRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "DiagramPushToECRRole",
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": {
+                  "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+                }
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringLike": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": [
+                    "repo:nationalarchives/DiAGRAM:environment:dev",
+                    "repo:nationalarchives/DiAGRAM:environment:live"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "DiagramPushToECRPolicy",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "",
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:InitiateLayerUpload",
+                    "ecr:UploadLayerPart",
+                    "ecr:CompleteLayerUpload",
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:PutImage",
+                    "ecr:BatchGetImage",
+                    "ecr:GetDownloadUrlForLayer"
+                  ],
+                  "Resource": {"Fn::Sub":  "arn:aws:ecr:eu-west-2:${ManagementAccount}:repository/diagram-backend-lambda-runtimes"}
+                },
+                {
+                  "Sid": "",
+                  "Effect": "Allow",
+                  "Action": "ecr:GetAuthorizationToken",
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
     "DiagramTerraformRole": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -26,6 +88,7 @@
                   "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
                   "token.actions.githubusercontent.com:sub": [
                     "repo:nationalarchives/DiAGRAM-terraform:ref:refs/heads/*",
+                    {"Fn::Sub" : "repo:nationalarchives/DiAGRAM:environment:${Environment}"},
                     {"Fn::Sub" : "repo:nationalarchives/DiAGRAM-terraform:environment:${Environment}"}
                   ]
                 }
@@ -52,6 +115,7 @@
                   "Action": [
                     "route53:*",
                     "acm:*",
+                    "ecr:*",
                     "cloudfront:*",
                     "apigateway:*",
                     "logs:*",
@@ -77,12 +141,20 @@
                   "Sid": "",
                   "Effect": "Allow",
                   "Action": [
+                    "iam:AttachRolePolicy",
+                    "iam:CreateRole",
+                    "iam:DeleteRole",
+                    "iam:DetachRolePolicy",
+                    "iam:DeleteRolePolicy",
                     "iam:GetPolicy",
                     "iam:GetPolicyVersion",
                     "iam:GetRole",
                     "iam:GetRolePolicy",
                     "iam:ListRolePolicies",
                     "iam:ListAttachedRolePolicies",
+                    "iam:ListInstanceProfilesForRole",
+                    "iam:PassRole",
+                    "iam:PutRolePolicy",
                     "iam:TagRole",
                     "iam:UntagRole",
                     "iam:UpdateRoleDescription",

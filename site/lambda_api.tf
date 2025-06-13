@@ -76,19 +76,11 @@ resource "aws_iam_role_policy" "cloudwatch" {
 # Create Lambda function from custom Lambda container image
 resource "aws_lambda_function" "this" {
   function_name = local.lambda_function_name
-  image_uri     = "${data.aws_ssm_parameter.management_account.value}.dkr.ecr.eu-west-2.amazonaws.com/diagram-backend-lambda-runtimes:latest"
+  image_uri     = "${data.aws_ssm_parameter.management_account.value}.dkr.ecr.eu-west-2.amazonaws.com/diagram-backend-lambda-runtimes:${terraform.workspace}"
   memory_size   = local.lambda_memsize
   package_type  = local.lambda_package_type
   role          = aws_iam_role.lambda.arn
   timeout       = local.lambda_timeout
-  # Ignore changes to the image URI; updating the container image used by this
-  # function is performed by the application code's GitHub Actions
-  # "update-backend" workflow
-  lifecycle {
-    ignore_changes = [
-      image_uri
-    ]
-  }
 }
 
 # Create API Gateway.
@@ -129,7 +121,6 @@ resource "aws_apigatewayv2_stage" "lambda" {
     })
   }
   default_route_settings {
-    logging_level            = local.gateway_stage_logging_level
     detailed_metrics_enabled = local.gateway_stage_detailed_metrics
     throttling_burst_limit   = local.gateway_stage_burst_limit
     throttling_rate_limit    = local.gateway_stage_rate_limit

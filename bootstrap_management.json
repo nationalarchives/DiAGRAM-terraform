@@ -43,8 +43,9 @@
               "Effect": "Allow",
               "Principal": {
                 "AWS": [
-                  {"Fn::Sub":  "arn:aws:iam::${DevAccount}:role/Role_Diagram_GitHub_OICD"},
-                  {"Fn::Sub":  "arn:aws:iam::${ProdAccount}:role/Role_Diagram_GitHub_OICD"}
+                  {"Fn::Sub":  "arn:aws:iam::${DevAccount}:role/DiagramTerraformRole"},
+                  {"Fn::Sub":  "arn:aws:iam::${ProdAccount}:role/DiagramTerraformRole"},
+                  {"Fn::Sub":  "arn:aws:iam::${DevAccount}:role/DiagramPushToECRRole"}
                 ]
               },
               "Sid": "New Policy"
