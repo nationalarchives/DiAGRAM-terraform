@@ -94,6 +94,11 @@ resource "aws_api_gateway_account" "lambda" {
   cloudwatch_role_arn = aws_iam_role.cloudwatch.arn
 }
 
+resource "aws_cloudwatch_log_group" "lambda_log_group" {
+  name              = "/aws/lambda/diagram-backend"
+  retention_in_days = 7
+}
+
 # Create a log group in CloudWatch to store function execution logs in.
 resource "aws_cloudwatch_log_group" "lambda" {
   name              = "API-Gateway-Execution-Logs_${aws_apigatewayv2_api.lambda.id}/"
