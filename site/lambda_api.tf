@@ -74,21 +74,13 @@ resource "aws_iam_role_policy" "cloudwatch" {
 }
 
 # Create Lambda function from custom Lambda container image
-resource "aws_lambda_function" "this" {
+resource "aws_lambda_function" "backend_lambda" {
   function_name = local.lambda_function_name
-  image_uri     = "${data.aws_ssm_parameter.management_account.value}.dkr.ecr.eu-west-2.amazonaws.com/diagram-backend-lambda-runtimes:latest"
+  image_uri     = "${data.aws_ssm_parameter.management_account.value}.dkr.ecr.eu-west-2.amazonaws.com/diagram-backend-lambda-runtimes:${terraform.workspace}"
   memory_size   = local.lambda_memsize
   package_type  = local.lambda_package_type
   role          = aws_iam_role.lambda.arn
   timeout       = local.lambda_timeout
-  # Ignore changes to the image URI; updating the container image used by this
-  # function is performed by the application code's GitHub Actions
-  # "update-backend" workflow
-  lifecycle {
-    ignore_changes = [
-      image_uri
-    ]
-  }
 }
 
 # Create API Gateway.
@@ -100,6 +92,11 @@ resource "aws_apigatewayv2_api" "lambda" {
 # Attach CloudWatch role to allow API GateWay to push logs there.
 resource "aws_api_gateway_account" "lambda" {
   cloudwatch_role_arn = aws_iam_role.cloudwatch.arn
+}
+
+resource "aws_cloudwatch_log_group" "lambda_log_group" {
+  name              = "/aws/lambda/diagram-backend"
+  retention_in_days = 7
 }
 
 # Create a log group in CloudWatch to store function execution logs in.
@@ -129,7 +126,6 @@ resource "aws_apigatewayv2_stage" "lambda" {
     })
   }
   default_route_settings {
-    logging_level            = local.gateway_stage_logging_level
     detailed_metrics_enabled = local.gateway_stage_detailed_metrics
     throttling_burst_limit   = local.gateway_stage_burst_limit
     throttling_rate_limit    = local.gateway_stage_rate_limit
@@ -141,7 +137,7 @@ resource "aws_apigatewayv2_integration" "lambda" {
   api_id             = aws_apigatewayv2_api.lambda.id
   integration_type   = local.gateway_integration_type
   integration_method = local.gateway_integration_method
-  integration_uri    = aws_lambda_function.this.invoke_arn
+  integration_uri    = aws_lambda_function.backend_lambda.invoke_arn
 }
 
 # Route requests from API Gateway through to the Lambda Function.
@@ -155,7 +151,7 @@ resource "aws_apigatewayv2_route" "lambda-backend" {
 resource "aws_lambda_permission" "api_gw" {
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.this.function_name
+  function_name = aws_lambda_function.backend_lambda.function_name
   principal     = "apigateway.amazonaws.com"
 
   source_arn = "${aws_apigatewayv2_api.lambda.execution_arn}/*/*"

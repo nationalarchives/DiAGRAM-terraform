@@ -1,4 +1,5 @@
 template-file-path: bootstrap_environments.json
 parameters:
   Environment: /environment/name
+  ManagementAccount: /mgmt/account_id
 tags: {}

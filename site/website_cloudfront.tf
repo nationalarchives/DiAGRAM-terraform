@@ -1,3 +1,11 @@
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "6.0.0"
+    }
+  }
+}
 # TNA provided this certificate upon our request, importing it into the three
 # development environments on our behalf.
 # Note that SSL certificates for use with CloudFront _must_ be imported into
@@ -157,19 +165,11 @@ resource "aws_cloudfront_distribution" "diagram" {
   }
 }
 
-locals {
-  zone_prefix = terraform.workspace == "live" ? "" : "${terraform.workspace}-"
-  zone_name   = "${local.zone_prefix}diagram.nationalarchives.gov.uk"
-}
-
-data "aws_route53_zone" "hosted_zone" {
-  name = local.zone_name
-}
 
 # Create a record in route 53 for each tna zone
 resource "aws_route53_record" "tna_records" {
-  zone_id = data.aws_route53_zone.hosted_zone.id
-  name    = local.zone_name
+  zone_id = var.hosted_zone_id
+  name    = var.hosted_zone_name
   type    = "A"
 
   alias {
