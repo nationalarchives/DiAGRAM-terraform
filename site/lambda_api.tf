@@ -74,7 +74,7 @@ resource "aws_iam_role_policy" "cloudwatch" {
 }
 
 # Create Lambda function from custom Lambda container image
-resource "aws_lambda_function" "this" {
+resource "aws_lambda_function" "backend_lambda" {
   function_name = local.lambda_function_name
   image_uri     = "${data.aws_ssm_parameter.management_account.value}.dkr.ecr.eu-west-2.amazonaws.com/diagram-backend-lambda-runtimes:${terraform.workspace}"
   memory_size   = local.lambda_memsize
@@ -137,7 +137,7 @@ resource "aws_apigatewayv2_integration" "lambda" {
   api_id             = aws_apigatewayv2_api.lambda.id
   integration_type   = local.gateway_integration_type
   integration_method = local.gateway_integration_method
-  integration_uri    = aws_lambda_function.this.invoke_arn
+  integration_uri    = aws_lambda_function.backend_lambda.invoke_arn
 }
 
 # Route requests from API Gateway through to the Lambda Function.
@@ -151,7 +151,7 @@ resource "aws_apigatewayv2_route" "lambda-backend" {
 resource "aws_lambda_permission" "api_gw" {
   statement_id  = "AllowExecutionFromAPIGateway"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.this.function_name
+  function_name = aws_lambda_function.backend_lambda.function_name
   principal     = "apigateway.amazonaws.com"
 
   source_arn = "${aws_apigatewayv2_api.lambda.execution_arn}/*/*"
