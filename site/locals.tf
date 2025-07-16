@@ -23,5 +23,5 @@ locals {
   gateway_stage_rate_limit       = 1000
   gateway_integration_type       = "AWS_PROXY"
   gateway_integration_method     = "POST"
-  gateway_route_key              = "POST /api/{proxy+}"
+  gateway_endpoints              = toset(["test/is_alive", "model/score", "chart/plot", "report/pdf", "report/csv", "validation/validate_json"])
 }
