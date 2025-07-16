@@ -142,8 +142,9 @@ resource "aws_apigatewayv2_integration" "lambda" {
 
 # Route requests from API Gateway through to the Lambda Function.
 resource "aws_apigatewayv2_route" "lambda-backend" {
+  for_each  = local.gateway_endpoints
   api_id    = aws_apigatewayv2_api.lambda.id
-  route_key = local.gateway_route_key
+  route_key = "POST /api/${each.value}"
   target    = "integrations/${aws_apigatewayv2_integration.lambda.id}"
 }
 
