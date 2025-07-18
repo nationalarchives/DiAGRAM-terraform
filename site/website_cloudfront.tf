@@ -178,3 +178,17 @@ resource "aws_route53_record" "tna_records" {
     evaluate_target_health = false
   }
 }
+
+# S3 bucket for logging
+resource "aws_s3_bucket" "cloudfront_logs" {
+  bucket = "${terraform.workspace}-diagram-cloudfront-logs-bucket"
+}
+
+# Logging bucket policy
+resource "aws_s3_bucket_policy" "cf_logs_policy" {
+  bucket = aws_s3_bucket.cloudfront_logs.id
+  policy = templatefile("./../templates/s3/cloudfront_bucket_access_policy.json.tpl", {
+    "bucket_name":                 "${aws_s3_bucket.cloudfront_logs.bucket}"
+    "cloudfront_distribution_arn": "${aws_cloudfront_distribution.diagram.arn}"
+  })
+}
