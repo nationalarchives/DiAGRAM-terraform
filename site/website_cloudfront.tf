@@ -187,7 +187,7 @@ resource "aws_s3_bucket" "cloudfront_logs" {
 # Logging bucket policy
 resource "aws_s3_bucket_policy" "cf_logs_policy" {
   bucket = aws_s3_bucket.cloudfront_logs.id
-  policy = templatefile("./../templates/s3/cloudfront_bucket_access_policy.json.tpl", {
+  policy = templatefile("./templates/s3/cloudfront_bucket_access_policy.json.tpl", {
     "bucket_name":                 "${aws_s3_bucket.cloudfront_logs.bucket}"
     "cloudfront_distribution_arn": "${aws_cloudfront_distribution.diagram.arn}"
   })
