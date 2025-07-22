@@ -192,3 +192,91 @@ resource "aws_s3_bucket_policy" "cf_logs_policy" {
     "cloudfront_distribution_arn": "${aws_cloudfront_distribution.diagram.arn}"
   })
 }
+
+resource "aws_s3_bucket" "athena_results" {
+  bucket = "${terraform.workspace}-diagram-logs-athena-output-bucket"
+  force_destroy = true
+}
+
+resource "aws_athena_workgroup" "cloudfront" {
+  name = "logs-workgroup"
+  configuration {
+    result_configuration {
+      output_location = "s3://${aws_s3_bucket.athena_results.bucket}/"
+    }
+  }
+}
+
+resource "aws_s3control_bucket_lifecycle_configuration" "athena_lifecycle" {
+  bucket = aws_s3_bucket.athena_results.id
+  rule {
+    id = "expire-old-results"
+    status = "Enabled"
+
+    expiration {
+      days = 30 #delete anything older than 30 days
+    }
+
+    filter {
+      prefix = "" #Apply filter to everything in the bucket
+    }
+  }
+}
+
+resource "aws_athena_database" "cloudfront_database" {
+  bucket = aws_s3_bucket.athena_results.bucket
+  name   = "cloudfront_logs_db"
+}
+
+resource "aws_athena_named_query" "create_table" {
+  name = "Create CloudFront Logs Table"
+  description = "Create Logs Table"
+  database = aws_athena_database.cloudfront_database.name
+  workgroup = aws_athena_workgroup.cloudfront.name
+
+  query = <<EOF
+  CREATE EXTERNAL TABLE IF NOT EXISTS cloudfront_logs (
+    `date` DATE,
+    `time` STRING,
+    `location` STRING,
+    `bytes` BIGINT,
+    `request_ip` STRING,
+    `method` STRING,
+    `host` STRING,
+    `uri` STRING,
+    `status` INT,
+    `referrer` STRING,
+    `user_agent` STRING,
+    `query_string` STRING,
+    `cookie` STRING,
+    `result_type` STRING,
+    `request_id` STRING,
+    `host_header` STRING,
+    `request_protocol` STRING,
+    `request_bytes` BIGINT,
+    `time_taken` FLOAT,
+    `xforwarded_for` STRING,
+    `ssl_protocol` STRING,
+    `ssl_cipher` STRING,
+    `response_result_type` STRING,
+    `http_version` STRING,
+    `fle_status` STRING,
+    `fle_encrypted_fields` INT,
+    `c_port` INT,
+    `time_to_first_byte` FLOAT,
+    `edge_detailed_result_type` STRING,
+    `content_type` STRING,
+    `content_len` BIGINT,
+    `response_age` STRING,
+    `request_host_header` STRING,
+    `request_protocol_version` STRING
+  )
+  ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.RegexSerDe'
+  WITH SERDEPROPERTIES (
+    "input.regex" = "([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)"
+  )
+  STORED AS TEXTFILE
+  LOCATION 's3://${aws_s3_bucket.athena_results.bucket}'
+  TBLPROPERTIES ('skip.header.line.count'='2');
+  EOF
+}
