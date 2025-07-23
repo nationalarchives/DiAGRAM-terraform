@@ -63,7 +63,6 @@ resource "aws_cloudfront_response_headers_policy" "diagram" {
       override                = true
     }
   }
-
 }
 
 # Create CloudFront distribution
@@ -188,13 +187,13 @@ resource "aws_s3_bucket" "cloudfront_logs" {
 resource "aws_s3_bucket_policy" "cf_logs_policy" {
   bucket = aws_s3_bucket.cloudfront_logs.id
   policy = templatefile("./templates/s3/cloudfront_bucket_access_policy.json.tpl", {
-    "bucket_name":                 "${aws_s3_bucket.cloudfront_logs.bucket}"
-    "cloudfront_distribution_arn": "${aws_cloudfront_distribution.diagram.arn}"
+    "bucket_name" : "${aws_s3_bucket.cloudfront_logs.bucket}"
+    "cloudfront_distribution_arn" : "${aws_cloudfront_distribution.diagram.arn}"
   })
 }
 
 resource "aws_s3_bucket" "athena_results" {
-  bucket = "${terraform.workspace}-diagram-logs-athena-output-bucket"
+  bucket        = "${terraform.workspace}-diagram-logs-athena-output-bucket"
   force_destroy = true
 }
 
@@ -210,7 +209,7 @@ resource "aws_athena_workgroup" "cloudfront" {
 resource "aws_s3control_bucket_lifecycle_configuration" "athena_lifecycle" {
   bucket = aws_s3_bucket.athena_results.id
   rule {
-    id = "expire-old-results"
+    id     = "expire-old-results"
     status = "Enabled"
 
     expiration {
@@ -229,10 +228,10 @@ resource "aws_athena_database" "cloudfront_database" {
 }
 
 resource "aws_athena_named_query" "create_table" {
-  name = "Create CloudFront Logs Table"
+  name        = "Create CloudFront Logs Table"
   description = "Create Logs Table"
-  database = aws_athena_database.cloudfront_database.name
-  workgroup = aws_athena_workgroup.cloudfront.name
+  database    = aws_athena_database.cloudfront_database.name
+  workgroup   = aws_athena_workgroup.cloudfront.name
 
   query = <<EOF
   CREATE EXTERNAL TABLE IF NOT EXISTS cloudfront_logs (
