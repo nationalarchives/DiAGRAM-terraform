@@ -183,31 +183,42 @@ resource "aws_s3_bucket" "cloudfront_logs" {
   bucket = "${terraform.workspace}-diagram-cloudfront-logs-bucket"
 }
 
-# Logging bucket policy
 resource "aws_s3_bucket_policy" "cf_logs_policy" {
   bucket = aws_s3_bucket.cloudfront_logs.id
-  policy = templatefile("./templates/s3/cloudfront_bucket_access_policy.json.tpl", {
-    "bucket_name" : "${aws_s3_bucket.cloudfront_logs.bucket}"
-    "cloudfront_distribution_arn" : "${aws_cloudfront_distribution.diagram.arn}"
+  policy = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": {
+          "Service": "cloudfront.amazonaws.com"
+        },
+        "Action": "s3:PutObject",
+        "Resource":[
+          aws_s3_bucket.cloudfront_logs.arn,
+          "${aws_s3_bucket.cloudfront_logs.arn}/*",
+        ]
+        "Condition": {
+          "StringEquals": {
+            "AWS:SourceArn": aws_cloudfront_distribution.diagram.arn
+          }
+        }
+      }
+    ]
   })
-}
-
-resource "aws_s3_bucket" "athena_results" {
-  bucket        = "${terraform.workspace}-diagram-logs-athena-output-bucket"
-  force_destroy = true
 }
 
 resource "aws_athena_workgroup" "cloudfront" {
   name = "logs-workgroup"
   configuration {
     result_configuration {
-      output_location = "s3://${aws_s3_bucket.athena_results.bucket}/"
+      output_location = "s3://${var.athena_log_bucket_name}/"
     }
   }
 }
 
-resource "aws_s3control_bucket_lifecycle_configuration" "athena_lifecycle" {
-  bucket = aws_s3_bucket.athena_results.id
+resource "aws_s3_bucket_lifecycle_configuration" "athena_lifecycle" {
+  bucket = var.athena_log_bucket_id
   rule {
     id     = "expire-old-results"
     status = "Enabled"
@@ -223,59 +234,64 @@ resource "aws_s3control_bucket_lifecycle_configuration" "athena_lifecycle" {
 }
 
 resource "aws_athena_database" "cloudfront_database" {
-  bucket = aws_s3_bucket.athena_results.bucket
+  bucket = var.athena_log_bucket_name
   name   = "cloudfront_logs_db"
 }
 
 resource "aws_athena_named_query" "create_table" {
   name        = "Create CloudFront Logs Table"
-  description = "Create Logs Table"
+  description = "Create the Table using query"
   database    = aws_athena_database.cloudfront_database.name
   workgroup   = aws_athena_workgroup.cloudfront.name
 
   query = <<EOF
-  CREATE EXTERNAL TABLE IF NOT EXISTS cloudfront_logs (
-    `date` DATE,
-    `time` STRING,
-    `location` STRING,
-    `bytes` BIGINT,
-    `request_ip` STRING,
-    `method` STRING,
-    `host` STRING,
-    `uri` STRING,
-    `status` INT,
-    `referrer` STRING,
-    `user_agent` STRING,
-    `query_string` STRING,
-    `cookie` STRING,
-    `result_type` STRING,
-    `request_id` STRING,
-    `host_header` STRING,
-    `request_protocol` STRING,
-    `request_bytes` BIGINT,
-    `time_taken` FLOAT,
-    `xforwarded_for` STRING,
-    `ssl_protocol` STRING,
-    `ssl_cipher` STRING,
-    `response_result_type` STRING,
-    `http_version` STRING,
-    `fle_status` STRING,
-    `fle_encrypted_fields` INT,
-    `c_port` INT,
-    `time_to_first_byte` FLOAT,
-    `edge_detailed_result_type` STRING,
-    `content_type` STRING,
-    `content_len` BIGINT,
-    `response_age` STRING,
-    `request_host_header` STRING,
-    `request_protocol_version` STRING
-  )
-  ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.RegexSerDe'
-  WITH SERDEPROPERTIES (
-    "input.regex" = "([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)"
-  )
-  STORED AS TEXTFILE
-  LOCATION 's3://${aws_s3_bucket.athena_results.bucket}'
-  TBLPROPERTIES ('skip.header.line.count'='2');
+    CREATE EXTERNAL TABLE IF NOT EXISTS cloudfront_logs_db.cloudfront_logs (
+      the_date DATE,
+      time STRING,
+      location STRING,
+      bytes BIGINT,
+      request_ip STRING,
+      method STRING,
+      host STRING,
+      uri STRING,
+      status INT,
+      referrer STRING,
+      user_agent STRING,
+      query_string STRING,
+      cookie STRING,
+      result_type STRING,
+      request_id STRING,
+      host_header STRING,
+      request_protocol STRING,
+      request_bytes BIGINT,
+      time_taken FLOAT,
+      xforwarded_for STRING,
+      ssl_protocol STRING,
+      ssl_cipher STRING,
+      response_result_type STRING,
+      http_version STRING,
+      fle_status STRING,
+      fle_encrypted_fields INT,
+      c_port INT,
+      time_to_first_byte FLOAT,
+      edge_detailed_result_type STRING,
+      content_type STRING, content_len BIGINT,
+      response_age STRING, request_host_header STRING,
+      request_protocol_version STRING
+      )
+      ROW FORMAT SERDE 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'
+      WITH SERDEPROPERTIES ('input.regex' = '([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)')
+      STORED AS TEXTFILE
+      LOCATION 's3://${aws_s3_bucket.cloudfront_logs.bucket}/'
+      TBLPROPERTIES ('skip.header.line.count'='2');
   EOF
+}
+
+resource "null_resource" "execute_query" {
+  provisioner "local-exec" {
+    command = <<EOT
+      aws athena start-query-execution --query-string "${replace(aws_athena_named_query.create_table.query, "\n", " ")}" --query-execution-context Database=${aws_athena_database.cloudfront_database.name} --work-group ${aws_athena_workgroup.cloudfront.name} --result-configuration OutputLocation=s3://${var.athena_log_bucket_name}/
+    EOT
+  }
+  depends_on = [aws_athena_database.cloudfront_database, aws_athena_workgroup.cloudfront, aws_athena_named_query.create_table]
 }
