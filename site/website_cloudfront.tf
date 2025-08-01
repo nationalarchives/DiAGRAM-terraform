@@ -6,6 +6,11 @@ terraform {
     }
   }
 }
+
+locals {
+  log_bucket_name = "${terraform.workspace}-diagram-cloudfront-logs-bucket"
+}
+
 # TNA provided this certificate upon our request, importing it into the three
 # development environments on our behalf.
 # Note that SSL certificates for use with CloudFront _must_ be imported into
@@ -16,6 +21,8 @@ data "aws_acm_certificate" "wildcard" {
   types    = ["AMAZON_ISSUED"]
   provider = aws.us-east-1
 }
+
+data "aws_caller_identity" "current" {}
 
 resource "aws_cloudfront_origin_access_control" "website" {
   name                              = "website"
@@ -164,6 +171,34 @@ resource "aws_cloudfront_distribution" "diagram" {
   }
 }
 
+resource "aws_cloudwatch_log_delivery_source" "cloudfront_source" {
+  region       = "us-east-1"
+  name         = "cloudfront_source"
+  log_type     = "ACCESS_LOGS"
+  resource_arn = aws_cloudfront_distribution.diagram.arn
+}
+
+resource "aws_cloudwatch_log_delivery_destination" "cloudfront_log_destination" {
+  region        = "us-east-1"
+  name          = "logs-destination"
+  output_format = "json"
+
+  delivery_destination_configuration {
+    destination_resource_arn = aws_cloudwatch_log_group.cloudfront_log_group.arn
+  }
+}
+
+resource "aws_cloudwatch_log_delivery" "log_delivery" {
+  region                   = "us-east-1"
+  delivery_source_name     = aws_cloudwatch_log_delivery_source.cloudfront_source.name
+  delivery_destination_arn = aws_cloudwatch_log_delivery_destination.cloudfront_log_destination.arn
+}
+
+resource "aws_cloudwatch_log_group" "cloudfront_log_group" {
+  region            = "us-east-1"
+  name              = "Diagram-Cloudfront-Logs"
+  retention_in_days = 7
+}
 
 # Create a record in route 53 for each tna zone
 resource "aws_route53_record" "tna_records" {
@@ -176,122 +211,4 @@ resource "aws_route53_record" "tna_records" {
     zone_id                = aws_cloudfront_distribution.diagram.hosted_zone_id
     evaluate_target_health = false
   }
-}
-
-# S3 bucket for logging
-resource "aws_s3_bucket" "cloudfront_logs" {
-  bucket = "${terraform.workspace}-diagram-cloudfront-logs-bucket"
-}
-
-resource "aws_s3_bucket_policy" "cf_logs_policy" {
-  bucket = aws_s3_bucket.cloudfront_logs.id
-  policy = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Principal": {
-          "Service": "cloudfront.amazonaws.com"
-        },
-        "Action": "s3:PutObject",
-        "Resource":[
-          aws_s3_bucket.cloudfront_logs.arn,
-          "${aws_s3_bucket.cloudfront_logs.arn}/*",
-        ]
-        "Condition": {
-          "StringEquals": {
-            "AWS:SourceArn": aws_cloudfront_distribution.diagram.arn
-          }
-        }
-      }
-    ]
-  })
-}
-
-resource "aws_athena_workgroup" "cloudfront" {
-  name = "logs-workgroup"
-  configuration {
-    result_configuration {
-      output_location = "s3://${var.athena_log_bucket_name}/"
-    }
-  }
-}
-
-resource "aws_s3_bucket_lifecycle_configuration" "athena_lifecycle" {
-  bucket = var.athena_log_bucket_id
-  rule {
-    id     = "expire-old-results"
-    status = "Enabled"
-
-    expiration {
-      days = 30 #delete anything older than 30 days
-    }
-
-    filter {
-      prefix = "" #Apply filter to everything in the bucket
-    }
-  }
-}
-
-resource "aws_athena_database" "cloudfront_database" {
-  bucket = var.athena_log_bucket_name
-  name   = "cloudfront_logs_db"
-}
-
-resource "aws_athena_named_query" "create_table" {
-  name        = "Create CloudFront Logs Table"
-  description = "Create the Table using query"
-  database    = aws_athena_database.cloudfront_database.name
-  workgroup   = aws_athena_workgroup.cloudfront.name
-
-  query = <<EOF
-    CREATE EXTERNAL TABLE IF NOT EXISTS cloudfront_logs_db.cloudfront_logs (
-      the_date DATE,
-      time STRING,
-      location STRING,
-      bytes BIGINT,
-      request_ip STRING,
-      method STRING,
-      host STRING,
-      uri STRING,
-      status INT,
-      referrer STRING,
-      user_agent STRING,
-      query_string STRING,
-      cookie STRING,
-      result_type STRING,
-      request_id STRING,
-      host_header STRING,
-      request_protocol STRING,
-      request_bytes BIGINT,
-      time_taken FLOAT,
-      xforwarded_for STRING,
-      ssl_protocol STRING,
-      ssl_cipher STRING,
-      response_result_type STRING,
-      http_version STRING,
-      fle_status STRING,
-      fle_encrypted_fields INT,
-      c_port INT,
-      time_to_first_byte FLOAT,
-      edge_detailed_result_type STRING,
-      content_type STRING, content_len BIGINT,
-      response_age STRING, request_host_header STRING,
-      request_protocol_version STRING
-      )
-      ROW FORMAT SERDE 'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe'
-      WITH SERDEPROPERTIES ('input.regex' = '([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)\\t([^ ]*)')
-      STORED AS TEXTFILE
-      LOCATION 's3://${aws_s3_bucket.cloudfront_logs.bucket}/'
-      TBLPROPERTIES ('skip.header.line.count'='2');
-  EOF
-}
-
-resource "null_resource" "execute_query" {
-  provisioner "local-exec" {
-    command = <<EOT
-      aws athena start-query-execution --query-string "${replace(aws_athena_named_query.create_table.query, "\n", " ")}" --query-execution-context Database=${aws_athena_database.cloudfront_database.name} --work-group ${aws_athena_workgroup.cloudfront.name} --result-configuration OutputLocation=s3://${var.athena_log_bucket_name}/
-    EOT
-  }
-  depends_on = [aws_athena_database.cloudfront_database, aws_athena_workgroup.cloudfront, aws_athena_named_query.create_table]
 }
