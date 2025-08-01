@@ -4,7 +4,7 @@ locals {
 
 resource "aws_shield_protection" "shield_protection" {
   for_each     = toset([aws_s3_bucket.website.arn, aws_iam_role.cloudwatch.arn])
-  name         = "${upper(var.project)}ShieldProtection"
+  name         = "DIAGRAMShieldProtection"
   resource_arn = each.value
 }
 
