@@ -192,7 +192,7 @@ resource "aws_cloudwatch_log_delivery" "log_delivery" {
   region                   = "us-east-1"
   delivery_source_name     = aws_cloudwatch_log_delivery_source.cloudfront_source.name
   delivery_destination_arn = aws_cloudwatch_log_delivery_destination.cloudfront_log_destination.arn
-  record_fields = ["c-ip" ,"cs(Cookie)" ,"cs(Host)" ,"cs(Referer)" ,"cs(User-Agent)" ,"cs-bytes" ,"cs-method" ,"cs-uri-query" ,"cs-uri-stem" ,"date" ,"sc-bytes" ,"sc-status" ,"time"]
+  record_fields            = ["c-ip", "cs(Cookie)", "cs(Host)", "cs(Referer)", "cs(User-Agent)", "cs-bytes", "cs-method", "cs-uri-query", "cs-uri-stem", "date", "sc-bytes", "sc-status", "time"]
 }
 
 resource "aws_cloudwatch_log_group" "cloudfront_log_group" {
