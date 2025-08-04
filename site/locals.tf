@@ -24,4 +24,14 @@ locals {
   gateway_integration_type       = "AWS_PROXY"
   gateway_integration_method     = "POST"
   gateway_endpoints              = toset(["test/is_alive", "model/score", "chart/plot", "report/pdf", "report/csv", "validation/validate_json"])
+
+  environment = terraform.workspace
+  common_tags = tomap(
+    {
+      "Environment"     = local.environment,
+      "Owner"           = "DiAGRAM",
+      "Terraform"       = true,
+      "TerraformSource" = "https://github.com/nationalarchives/DiAGRAM-terraform"
+    }
+  )
 }
