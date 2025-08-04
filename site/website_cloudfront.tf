@@ -7,10 +7,6 @@ terraform {
   }
 }
 
-locals {
-  log_bucket_name = "${terraform.workspace}-diagram-cloudfront-logs-bucket"
-}
-
 # TNA provided this certificate upon our request, importing it into the three
 # development environments on our behalf.
 # Note that SSL certificates for use with CloudFront _must_ be imported into
