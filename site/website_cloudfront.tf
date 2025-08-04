@@ -18,8 +18,6 @@ data "aws_acm_certificate" "wildcard" {
   provider = aws.us-east-1
 }
 
-data "aws_caller_identity" "current" {}
-
 resource "aws_cloudfront_origin_access_control" "website" {
   name                              = "website"
   description                       = "S3 Website"
