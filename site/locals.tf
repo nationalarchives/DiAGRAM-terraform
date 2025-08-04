@@ -29,7 +29,7 @@ locals {
   common_tags = tomap(
     {
       "Environment"     = local.environment,
-      "Owner"           = "DR2",
+      "Owner"           = "DiAGRAM",
       "Terraform"       = true,
       "TerraformSource" = "https://github.com/nationalarchives/DiAGRAM-terraform"
     }
