@@ -197,7 +197,7 @@ resource "aws_cloudwatch_log_delivery" "log_delivery" {
 
 resource "aws_cloudwatch_log_group" "cloudfront_log_group" {
   region            = "us-east-1"
-  name              = "Diagram-Cloudfront-Logs"
+  name              = "diagram-cloudfront-logs"
   retention_in_days = 7
 }
 
