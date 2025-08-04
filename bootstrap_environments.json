@@ -133,10 +133,6 @@
                   "Resource": [
                     {"Fn::Sub": "arn:aws:s3:::nata-dia3-${Environment}-site"},
                     {"Fn::Sub": "arn:aws:s3:::nata-dia3-${Environment}-site/*"},
-                    {"Fn::Sub": "arn:aws:s3:::${Environment}-diagram-cloudfront-logs-bucket"},
-                    {"Fn::Sub": "arn:aws:s3:::${Environment}-diagram-cloudfront-logs-bucket/*"},
-                    {"Fn::Sub": "arn:aws:s3:::${Environment}-diagram-logs-athena-output-bucket"},
-                    {"Fn::Sub": "arn:aws:s3:::${Environment}-diagram-logs-athena-output-bucket/*"},
                     "arn:aws:s3:::mgmt-diagram-terraform-state",
                     "arn:aws:s3:::mgmt-diagram-terraform-state/*"
                   ]
@@ -186,54 +182,6 @@
                   "Resource": [
                     {
                       "Fn::Sub": "arn:aws:ssm:eu-west-2:${AWS::AccountId}:parameter/mgmt/account_id"
-                    }
-                  ]
-                },
-                {
-                  "Sid": "",
-                  "Effect": "Allow",
-                  "Action": [
-                    "athena:CreateWorkGroup",
-                    "athena:TagResource",
-                    "athena:StartQueryExecution",
-                    "athena:DeleteWorkGroup",
-                    "athena:GetQueryExecution",
-                    "athena:GetQueryResults",
-                    "athena:GetDatabase",
-                    "athena:CreateNamedQuery",
-                    "athena:GetNamedQuery",
-                    "athena:DeleteNamedQuery",
-                    "glue:CreateDatabase",
-                    "glue:GetDatabase",
-                    "glue:DeleteDatabase",
-                    "glue:GetTables",
-                    "glue:GetTable",
-                    "glue:CreateTable",
-                    "athena:GetWorkGroup",
-                    "athena:ListTagsForResource",
-                    "athena:StartQueryExecution"
-                  ],
-                  "Resource": [
-                    {
-                      "Fn::Sub": "arn:aws:athena:eu-west-2:${AWS::AccountId}:datacatalog/*"
-                    },
-                    {
-                      "Fn::Sub": "arn:aws:glue:eu-west-2:${AWS::AccountId}:catalog"
-                    },
-                    {
-                      "Fn::Sub": "arn:aws:glue:eu-west-2:${AWS::AccountId}:database/cloudfront_logs_db"
-                    },
-                    {
-                      "Fn::Sub": "arn:aws:athena:eu-west-2:${AWS::AccountId}:workgroup/logs-workgroup"
-                    },
-                    {
-                      "Fn::Sub": "arn:aws:athena:eu-west-2:${AWS::AccountId}:workgroup/primary"
-                    },
-                    {
-                      "Fn::Sub": "arn:aws:glue:eu-west-2:${AWS::AccountId}:table/cloudfront_logs_db/*"
-                    },
-                    {
-                      "Fn::Sub": "arn:aws:glue:eu-west-2:${AWS::AccountId}:userDefinedFunction/cloudfront_logs_db/*"
                     }
                   ]
                 }
