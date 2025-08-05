@@ -6,10 +6,9 @@ terraform {
     }
   }
 }
-# TNA provided this certificate upon our request, importing it into the three
-# development environments on our behalf.
-# Note that SSL certificates for use with CloudFront _must_ be imported into
-# the US East (N. Virginia) Region (us-east-1).
+
+# CloudFront only checks ACM certificates in us-east-1
+# data block to retrieve an issued wildcard certificate for the specific domain.
 data "aws_acm_certificate" "wildcard" {
   domain   = local.service[terraform.workspace].url
   statuses = ["ISSUED"]
@@ -63,7 +62,6 @@ resource "aws_cloudfront_response_headers_policy" "diagram" {
       override                = true
     }
   }
-
 }
 
 # Create CloudFront distribution
@@ -165,6 +163,39 @@ resource "aws_cloudfront_distribution" "diagram" {
   }
 }
 
+# source of the cloudfront logs
+resource "aws_cloudwatch_log_delivery_source" "cloudfront_logs_source" {
+  region       = "us-east-1"
+  name         = "cloudfront_logs_source"
+  log_type     = "ACCESS_LOGS"
+  resource_arn = aws_cloudfront_distribution.diagram.arn
+}
+
+# destination for delivering cloudfront logs
+resource "aws_cloudwatch_log_delivery_destination" "cloudfront_log_destination" {
+  region        = "us-east-1"
+  name          = "cloudfront-logs-destination"
+  output_format = "json"
+
+  delivery_destination_configuration {
+    destination_resource_arn = aws_cloudwatch_log_group.cloudfront_log_group.arn
+  }
+}
+
+# log delivery from cloudfront to cloudwatch with few filtered fields
+resource "aws_cloudwatch_log_delivery" "log_delivery" {
+  region                   = "us-east-1"
+  delivery_source_name     = aws_cloudwatch_log_delivery_source.cloudfront_logs_source.name
+  delivery_destination_arn = aws_cloudwatch_log_delivery_destination.cloudfront_log_destination.arn
+  record_fields            = ["c-ip", "cs(Cookie)", "cs(Host)", "cs(Referer)", "cs(User-Agent)", "cs-bytes", "cs-method", "cs-uri-query", "cs-uri-stem", "date", "sc-bytes", "sc-status", "time"]
+}
+
+# cloudwatch log group
+resource "aws_cloudwatch_log_group" "cloudfront_log_group" {
+  region            = "us-east-1"
+  name              = "diagram-cloudfront-logs"
+  retention_in_days = 30
+}
 
 # Create a record in route 53 for each tna zone
 resource "aws_route53_record" "tna_records" {
