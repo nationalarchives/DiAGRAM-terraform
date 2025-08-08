@@ -29,7 +29,7 @@ module "shield_response_s3_bucket" {
 module "cloudwatch_event_alarm_event_bridge_rule_alarm_only" {
   source = "git::https://github.com/nationalarchives/da-terraform-modules//eventbridge_api_destination_rule"
   event_pattern = templatefile("${path.module}/templates/eventbridge/cloudwatch_alarm_event_pattern.json.tpl", {
-    cloudwatch_alarms = jsonencode([module.shield_cloudwatch_rules["s3_bucket"].cloudwatch_alarm_arn, module.shield_cloudwatch_rules["cloudfront"].cloudwatch_alarm_arn]),
+    cloudwatch_alarms = jsonencode([module.shield_cloudwatch_rules["route_53_zone"].cloudwatch_alarm_arn, module.shield_cloudwatch_rules["cloudfront"].cloudwatch_alarm_arn]),
     state_value       = "ALARM"
   })
   name                = "${local.environment}-dr2-eventbridge-alarm-state-change-alarm-only"
@@ -48,8 +48,8 @@ module "cloudwatch_event_alarm_event_bridge_rule_alarm_only" {
 
 module "shield_cloudwatch_rules" {
   for_each = {
-    s3_bucket  = aws_s3_bucket.website.arn,
-    cloudfront = aws_iam_role.cloudwatch.arn,
+    route_53_zone = "arn:aws:route53:::hostedzone/${var.hosted_zone_id}",
+    cloudfront    = aws_cloudfront_distribution.diagram.arn,
   }
   source              = "git::https://github.com/nationalarchives/da-terraform-modules//cloudwatch_alarms"
   name                = "shield-metric-${each.key}"
