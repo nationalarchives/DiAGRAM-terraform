@@ -2,10 +2,14 @@ locals {
   general_notifications_channel_id = local.environment == "live" ? "C06E20AR65V" : "C068RLCPZFE"
 }
 
-resource "aws_shield_protection" "shield_protection" {
-  for_each     = toset(["arn:aws:route53:::hostedzone/${var.hosted_zone_id}", aws_cloudfront_distribution.diagram.arn])
-  name         = "DIAGRAMShieldProtection"
-  resource_arn = each.value
+resource "aws_shield_protection" "shield_protection_route_53" {
+  name         = "DIAGRAMShieldProtectionRoute53"
+  resource_arn = "arn:aws:route53:::hostedzone/${var.hosted_zone_id}"
+}
+
+resource "aws_shield_protection" "shield_protection_route_cloudfront" {
+  name         = "DIAGRAMShieldProtectionCloudfront"
+  resource_arn = aws_cloudfront_distribution.diagram.arn
 }
 
 module "shield_response_team_role" {
