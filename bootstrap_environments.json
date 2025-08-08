@@ -157,6 +157,7 @@
                     "iam:GetPolicyVersion",
                     "iam:GetRole",
                     "iam:GetRolePolicy",
+                    "iam:ListPolicyVersions",
                     "iam:ListRolePolicies",
                     "iam:ListAttachedRolePolicies",
                     "iam:ListInstanceProfilesForRole",
