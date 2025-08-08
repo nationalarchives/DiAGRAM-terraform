@@ -117,9 +117,12 @@
                     "acm:*",
                     "ecr:*",
                     "cloudfront:*",
+                    "cloudwatch:*",
+                    "events:*",
                     "apigateway:*",
                     "logs:*",
                     "lambda:*",
+                    "shield:*",
                     "wafv2:*"
                   ],
                   "Resource": "*"
@@ -133,6 +136,8 @@
                   "Resource": [
                     {"Fn::Sub": "arn:aws:s3:::nata-dia3-${Environment}-site"},
                     {"Fn::Sub": "arn:aws:s3:::nata-dia3-${Environment}-site/*"},
+                    {"Fn::Sub": "arn:aws:s3:::${Environment}-diagram-shield-response"},
+                    {"Fn::Sub": "arn:aws:s3:::${Environment}-diagram-shield-response/*"},
                     "arn:aws:s3:::mgmt-diagram-terraform-state",
                     "arn:aws:s3:::mgmt-diagram-terraform-state/*"
                   ]
@@ -142,6 +147,7 @@
                   "Effect": "Allow",
                   "Action": [
                     "iam:AttachRolePolicy",
+                    "iam:CreatePolicy",
                     "iam:CreateRole",
                     "iam:DeleteRole",
                     "iam:DetachRolePolicy",
@@ -155,6 +161,7 @@
                     "iam:ListInstanceProfilesForRole",
                     "iam:PassRole",
                     "iam:PutRolePolicy",
+                    "iam:TagPolicy",
                     "iam:TagRole",
                     "iam:UntagRole",
                     "iam:UpdateRoleDescription",
@@ -170,6 +177,15 @@
                     },
                     {
                       "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/Role_Diagram_GitHub_OICD"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/${Environment}-shield-team-response-role"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/${Environment}-dr2-eventbridge-alarm-state-change-alarm-only-role"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${Environment}-dr2-eventbridge-alarm-state-change-alarm-only-policy"
                     }
                   ]
                 },
@@ -177,11 +193,24 @@
                   "Sid": "",
                   "Effect": "Allow",
                   "Action": [
-                    "ssm:GetParameter"
+                    "ssm:GetParameter",
+                    "secretsmanager:CreateSecret",
+                    "secretsmanager:UpdateSecret",
+                    "secretsmanager:DescribeSecret",
+                    "secretsmanager:DeleteSecret",
+                    "secretsmanager:GetSecretValue",
+                    "secretsmanager:PutSecretValue"
+
                   ],
                   "Resource": [
                     {
                       "Fn::Sub": "arn:aws:ssm:eu-west-2:${AWS::AccountId}:parameter/mgmt/account_id"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:ssm:eu-west-2:${AWS::AccountId}:parameter/mgmt/slack/token"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:secretsmanager:eu-west-2:${AWS::AccountId}:secret:events!connection/*"
                     }
                   ]
                 }
