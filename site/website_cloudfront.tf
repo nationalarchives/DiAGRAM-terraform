@@ -103,17 +103,11 @@ resource "aws_cloudfront_distribution" "diagram" {
       "HEAD",
       "GET"
     ]
-    # Forward full request and any cookies
-    forwarded_values {
-      query_string = true
-      cookies {
-        forward = "all"
-      }
-    }
+    cache_policy_id            = "658327ea-f89d-4fab-a63d-7e88639e58f6" # https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-caching-optimized
     response_headers_policy_id = aws_cloudfront_response_headers_policy.diagram.id
   }
 
-  # Forward requsts of /api/ to API Gateway
+  # Forward requests of /api/ to API Gateway
   ordered_cache_behavior {
     path_pattern           = "/api/*"
     target_origin_id       = "${local.project_ns}-api_gw"
@@ -133,13 +127,7 @@ resource "aws_cloudfront_distribution" "diagram" {
       "HEAD",
       "GET"
     ]
-    # Forward full request and any cookies
-    forwarded_values {
-      query_string = true
-      cookies {
-        forward = "all"
-      }
-    }
+    cache_policy_id            = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policy-caching-disabled
     response_headers_policy_id = aws_cloudfront_response_headers_policy.diagram.id
   }
 
@@ -155,7 +143,7 @@ resource "aws_cloudfront_distribution" "diagram" {
     origin_id                = aws_s3_bucket.website.id
   }
 
-  # Attach SSL cerification
+  # Attach SSL certification
   viewer_certificate {
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
