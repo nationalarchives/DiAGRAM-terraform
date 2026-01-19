@@ -24,6 +24,14 @@ resource "aws_cloudfront_origin_access_control" "website" {
   signing_protocol                  = "sigv4"
 }
 
+data "aws_cloudfront_cache_policy" "caching_optimized" {
+  name = "Managed-CachingOptimized"
+}
+
+data "aws_cloudfront_cache_policy" "caching_disabled" {
+  name = "Managed-CachingDisabled"
+}
+
 # HTTP security headers
 resource "aws_cloudfront_response_headers_policy" "diagram" {
   name = "security-headers"
@@ -103,7 +111,7 @@ resource "aws_cloudfront_distribution" "diagram" {
       "HEAD",
       "GET"
     ]
-    cache_policy_id            = "658327ea-f89d-4fab-a63d-7e88639e58f6" # https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-caching-optimized
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
     response_headers_policy_id = aws_cloudfront_response_headers_policy.diagram.id
   }
 
@@ -127,7 +135,7 @@ resource "aws_cloudfront_distribution" "diagram" {
       "HEAD",
       "GET"
     ]
-    cache_policy_id            = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad" # https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html#managed-cache-policy-caching-disabled
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_disabled.id
     response_headers_policy_id = aws_cloudfront_response_headers_policy.diagram.id
   }
 
