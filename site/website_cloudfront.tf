@@ -24,6 +24,14 @@ resource "aws_cloudfront_origin_access_control" "website" {
   signing_protocol                  = "sigv4"
 }
 
+data "aws_cloudfront_cache_policy" "caching_optimized" {
+  name = "Managed-CachingOptimized"
+}
+
+data "aws_cloudfront_cache_policy" "caching_disabled" {
+  name = "Managed-CachingDisabled"
+}
+
 # HTTP security headers
 resource "aws_cloudfront_response_headers_policy" "diagram" {
   name = "security-headers"
@@ -103,17 +111,11 @@ resource "aws_cloudfront_distribution" "diagram" {
       "HEAD",
       "GET"
     ]
-    # Forward full request and any cookies
-    forwarded_values {
-      query_string = true
-      cookies {
-        forward = "all"
-      }
-    }
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_optimized.id
     response_headers_policy_id = aws_cloudfront_response_headers_policy.diagram.id
   }
 
-  # Forward requsts of /api/ to API Gateway
+  # Forward requests of /api/ to API Gateway
   ordered_cache_behavior {
     path_pattern           = "/api/*"
     target_origin_id       = "${local.project_ns}-api_gw"
@@ -133,13 +135,7 @@ resource "aws_cloudfront_distribution" "diagram" {
       "HEAD",
       "GET"
     ]
-    # Forward full request and any cookies
-    forwarded_values {
-      query_string = true
-      cookies {
-        forward = "all"
-      }
-    }
+    cache_policy_id            = data.aws_cloudfront_cache_policy.caching_disabled.id
     response_headers_policy_id = aws_cloudfront_response_headers_policy.diagram.id
   }
 
@@ -155,7 +151,7 @@ resource "aws_cloudfront_distribution" "diagram" {
     origin_id                = aws_s3_bucket.website.id
   }
 
-  # Attach SSL cerification
+  # Attach SSL certification
   viewer_certificate {
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
