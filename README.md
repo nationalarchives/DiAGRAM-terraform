@@ -12,7 +12,7 @@ There is a root file which contains the Route53 hosted zone and the EventBridge 
 All other resources are contained within the [site module](#the-site-module)
 
 This is because we destroy and recreate the dev environment as part of the release process.
-If we destroyed and recreated the hosted zone, the NS records would change and the route from TNA's root DNS would no longer work.
+If we destroyed and recreated the hosted zone, the NS records would change and the delegation from TNA's root DNS would no longer work.
 The eventbridge API destination is kept in case we want to send Slack messages during the release. 
 
 ### The site module
