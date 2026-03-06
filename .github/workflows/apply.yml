@@ -67,18 +67,10 @@ jobs:
       - run: pip install boto3
       - name: Send failure message
         if: failure()
-        shell: python
-        run: |
-          import json, boto3
-          message = ":warning: DiAGRAM-terraform deploy failed for ${{ github.event.inputs.environment }}"
-          boto3.client("events", region_name="eu-west-2").put_events(
-            Entries=[{'Source': 'DR2TerraformDeploy', 'DetailType': 'DR2DevMessage', 'Detail': json.dumps({"slackMessage": message})}]
-          )
+        run: python .github/scripts/send_message.py
+        env:
+          MESSAGE: ":warning: DiAGRAM-terraform deploy failed for ${{ github.event.inputs.environment }}"
       - name: Send success message
-        shell: python
-        run: |
-          import json, boto3
-          message = :white_check_mark: DiAGRAM-terraform deploy successful for ${{ github.event.inputs.environment }}"
-          boto3.client("events", region_name="eu-west-2").put_events(
-            Entries=[{'Source': 'DR2TerraformDeploy', 'DetailType': 'DR2DevMessage', 'Detail': json.dumps({"slackMessage": message})}]
-          )
+        run: python .github/scripts/send_message.py
+        env:
+          MESSAGE: ":white_check_mark: DiAGRAM-terraform deploy successful for ${{ github.event.inputs.environment }}"
