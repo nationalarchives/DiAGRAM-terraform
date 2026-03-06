@@ -188,6 +188,12 @@
                     },
                     {
                       "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${Environment}-dr2-eventbridge-alarm-state-change-alarm-only-policy"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:policy/${Environment}-dr2-eventbridge-dev-slack-message-policy"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:iam::${AWS::AccountId}:role/${Environment}-dr2-eventbridge-dev-slack-message-role"
                     }
                   ]
                 },

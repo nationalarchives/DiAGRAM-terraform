@@ -64,14 +64,21 @@ jobs:
           git push origin ${{ steps.next-tag.outputs.next-version }}
           git branch -f release-${{ github.event.inputs.environment }} HEAD
           git push -f origin release-${{ github.event.inputs.environment }}
+      - run: pip install boto3
       - name: Send failure message
         if: failure()
-        uses: nationalarchives/dr2-github-actions/.github/actions/slack-send@main
-        with:
-          message: ":warning: DiAGRAM-terraform deploy failed for ${{ github.event.inputs.environment }}"
-          slack-url: ${{ secrets.SLACK_WEBHOOK }}
+        shell: python
+        run: |
+          import json, boto3
+          message = ":warning: DiAGRAM-terraform deploy failed for ${{ github.event.inputs.environment }}"
+          boto3.client("events", region_name="eu-west-2").put_events(
+            Entries=[{'Source': 'DR2TerraformDeploy', 'DetailType': 'DR2DevMessage', 'Detail': json.dumps({"slackMessage": message})}]
+          )
       - name: Send success message
-        uses: nationalarchives/dr2-github-actions/.github/actions/slack-send@main
-        with:
-          message: ":white_check_mark: DiAGRAM-terraform deploy successful for ${{ github.event.inputs.environment }}"
-          slack-url: ${{ secrets.SLACK_WEBHOOK }}
+        shell: python
+        run: |
+          import json, boto3
+          message = :white_check_mark: DiAGRAM-terraform deploy successful for ${{ github.event.inputs.environment }}"
+          boto3.client("events", region_name="eu-west-2").put_events(
+            Entries=[{'Source': 'DR2TerraformDeploy', 'DetailType': 'DR2DevMessage', 'Detail': json.dumps({"slackMessage": message})}]
+          )

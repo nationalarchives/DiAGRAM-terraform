@@ -1,5 +1,5 @@
 locals {
-  general_notifications_channel_id = local.environment == "live" ? "C06E20AR65V" : "C068RLCPZFE"
+  dev_notifications_channel_id = local.environment == "live" ? "C06EDJPF0VB" : "C052LJASZ08"
 }
 
 resource "aws_shield_protection" "shield_protection_route_53" {
@@ -44,8 +44,24 @@ module "cloudwatch_event_alarm_event_bridge_rule_alarm_only" {
       "currentValue" = "$.detail.state.value"
     }
     input_template = templatefile("${path.module}/templates/eventbridge/slack_message_input_template.json.tpl", {
-      channel_id   = local.general_notifications_channel_id
+      channel_id   = local.dev_notifications_channel_id
       slackMessage = ":warning: Cloudwatch alarm <alarmName> has entered state <currentValue>"
+    })
+  }
+}
+
+module "dev_slack_message_eventbridge_rule" {
+  source              = "git::https://github.com/nationalarchives/da-terraform-modules//eventbridge_api_destination_rule"
+  api_destination_arn = var.api_destination_arn
+  event_pattern       = templatefile("${path.module}/templates/eventbridge/custom_detail_type_event_pattern.json.tpl", { detail_type = "DR2DevMessage" })
+  name                = "${local.environment}-dr2-eventbridge-dev-slack-message"
+  api_destination_input_transformer = {
+    input_paths = {
+      "slackMessage" = "$.detail.slackMessage"
+    }
+    input_template = templatefile("${path.module}/templates/eventbridge/slack_message_input_template.json.tpl", {
+      channel_id   = local.dev_notifications_channel_id
+      slackMessage = "<slackMessage>"
     })
   }
 }
