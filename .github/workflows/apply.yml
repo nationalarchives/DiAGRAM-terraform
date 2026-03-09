@@ -56,9 +56,7 @@ jobs:
           terraform workspace select ${{ github.event.inputs.environment }}
           terraform apply --auto-approve
       - id: next-tag
-        uses: nationalarchives/dr2-github-actions/.github/actions/get-next-version@main
-        with:
-          repo-name: DiAGRAM-terraform
+        run: echo next-version=$(curl -s $GITHUB_API_URL/repos/nationalarchives/DiAGRAM-terraform/tags | jq -r '.[0].name' | awk -F. -v OFS=. '{ $3++; print }') >> "$GITHUB_OUTPUT"
       - run: |
           git tag ${{ steps.next-tag.outputs.next-version }}
           git push origin ${{ steps.next-tag.outputs.next-version }}
