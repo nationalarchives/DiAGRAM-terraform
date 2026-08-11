@@ -18,6 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment }}
     steps:
+      - name: Provision runner
+        uses: nationalarchives/org-actions-provision-runner@5657f48ecd0fd31bfe857919149f1fdc690d53ed # v1.0.1
+        with:
+          wiz-sensor-token: ${{ secrets.WIZ_SENSOR_TOKEN }}
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Configure AWS credentials for Lambda
@@ -39,6 +43,10 @@ jobs:
       - plan
     environment: ${{ github.event.inputs.environment }}
     steps:
+      - name: Provision runner
+        uses: nationalarchives/org-actions-provision-runner@5657f48ecd0fd31bfe857919149f1fdc690d53ed # v1.0.1
+        with:
+          wiz-sensor-token: ${{ secrets.WIZ_SENSOR_TOKEN }}
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
