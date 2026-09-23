@@ -90,6 +90,8 @@ resource "aws_cloudfront_distribution" "diagram" {
       origin_ssl_protocols = [
         "TLSv1.2",
       ]
+      origin_read_timeout      = local.lambda_timeout
+      origin_keepalive_timeout = 5
     }
   }
 
